@@ -1,0 +1,112 @@
+{
+  "Name": "GPU Screen Recorder",
+  "Description": "Watch the replay buffer, recording and stream from a Stream Deck, and save the buffer with one key.",
+  "Author": "Zedwil",
+  "Version": "0.1.0",
+  "Icon": "icons/plugin",
+  "Category": "GPU Screen Recorder",
+  "SDKVersion": 2,
+  "CodePath": "run.sh",
+  "CodePathLin": "run.sh",
+  "Software": {
+    "MinimumVersion": "6.0"
+  },
+  "OS": [
+    {
+      "Platform": "linux",
+      "MinimumVersion": "0"
+    }
+  ],
+  "Actions": [
+    {
+      "Name": "Replay",
+      "UUID": "dev.gsr.replay",
+      "Icon": "icons/replay",
+      "Tooltip": "Whether the replay buffer is running, how long it is and how full. Press to start or stop it.",
+      "Controllers": ["Keypad"],
+      "SupportedInMultiActions": true,
+      "PropertyInspectorPath": "pi/replay.html",
+      "States": [
+        {
+          "Image": "icons/replay",
+          "Title": ""
+        }
+      ]
+    },
+    {
+      "Name": "Save Replay",
+      "UUID": "dev.gsr.save",
+      "Icon": "icons/save",
+      "Tooltip": "Save the replay buffer, whole or the last few minutes, and show the file it wrote.",
+      "Controllers": ["Keypad"],
+      "SupportedInMultiActions": true,
+      "PropertyInspectorPath": "pi/save.html",
+      "States": [
+        {
+          "Image": "icons/save",
+          "Title": ""
+        }
+      ]
+    },
+    {
+      "Name": "Record",
+      "UUID": "dev.gsr.record",
+      "Icon": "icons/record",
+      "Tooltip": "Start and stop a recording, including one running inside the replay buffer. Shows elapsed time and file size.",
+      "Controllers": ["Keypad"],
+      "SupportedInMultiActions": true,
+      "PropertyInspectorPath": "pi/record.html",
+      "States": [
+        {
+          "Image": "icons/record",
+          "Title": ""
+        }
+      ]
+    },
+    {
+      "Name": "Stream",
+      "UUID": "dev.gsr.stream",
+      "Icon": "icons/stream",
+      "Tooltip": "Start and stop streaming, with the service and how long it has been live.",
+      "Controllers": ["Keypad"],
+      "SupportedInMultiActions": true,
+      "PropertyInspectorPath": "pi/stream.html",
+      "States": [
+        {
+          "Image": "icons/stream",
+          "Title": ""
+        }
+      ]
+    },
+    {
+      "Name": "Screenshot",
+      "UUID": "dev.gsr.screenshot",
+      "Icon": "icons/screenshot",
+      "Tooltip": "Take a screenshot of the screen, a region or a window, and show the file it wrote.",
+      "Controllers": ["Keypad"],
+      "SupportedInMultiActions": true,
+      "PropertyInspectorPath": "pi/screenshot.html",
+      "States": [
+        {
+          "Image": "icons/screenshot",
+          "Title": ""
+        }
+      ]
+    },
+    {
+      "Name": "Status",
+      "UUID": "dev.gsr.status",
+      "Icon": "icons/status",
+      "Tooltip": "A read-only readout: what is capturing, from which monitor, at what frame rate, codec and bitrate.",
+      "Controllers": ["Keypad"],
+      "SupportedInMultiActions": false,
+      "PropertyInspectorPath": "pi/status.html",
+      "States": [
+        {
+          "Image": "icons/status",
+          "Title": ""
+        }
+      ]
+    }
+  ]
+}

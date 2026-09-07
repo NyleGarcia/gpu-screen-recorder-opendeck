@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GPU Screen Recorder — Replay</title>
+<link rel="stylesheet" href="_shared.css" />
+<script src="_shared.js"></script>
+</head>
+<body>
+  <label for="press">Pressing the key</label>
+  <select id="press">
+    <option value="toggle">Starts or stops the replay</option>
+    <option value="start">Only starts it</option>
+    <option value="stop">Only stops it</option>
+  </select>
+  <p class="hint">
+    The buffer's length, quality and audio tracks come from GPU Screen
+    Recorder's own settings — this key starts what the overlay is configured
+    to start, so the deck and the overlay can never disagree. While the buffer
+    is still filling the key shows how full it is; a save before then is
+    shorter than the buffer's length.
+  </p>
+  <p class="warn" id="warn" hidden></p>
+  <dl class="state" id="running"></dl>
+  <div style="margin-top:16px;border-top:1px solid #343a42;padding-top:14px">
+    <label for="theme">Colours <span style="font-weight:400;color:#8b929b">
+      — applies to every key</span></label>
+    <select id="theme"></select>
+  </div>
+<script>
+const press = document.getElementById("press");
+const warn = document.getElementById("warn");
+GSR.onPayload((payload) => {
+  if (!payload) return;
+  GSR.theme(payload);
+  GSR.running(payload);
+  press.value = GSR.settings().press || "toggle";
+  warn.hidden = payload.ui;
+  warn.textContent = payload.ui_cli
+    ? "gsr-ui is not running, so this key cannot start the replay. Existing "
+      + "recorders can still be saved and stopped."
+    : "gsr-ui-cli was not found. Install gpu-screen-recorder-ui to start and "
+      + "stop recording from the deck.";
+});
+press.onchange = () => GSR.save({ press: press.value });
+GSR.report("replay inspector loaded");
+</script>
+</body>
+</html>

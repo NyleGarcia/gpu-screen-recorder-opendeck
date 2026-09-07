@@ -1,0 +1,121 @@
+name: CI/CD
+
+on:
+  push:
+    branches: ["main", "next"]
+    paths-ignore:
+      - "**/*.md"
+      - "LICENSE"
+  # Kept in sync with the push branches above: a branch that can receive
+  # pushes must also validate the PRs merging into it, or every PR lands with
+  # no CI and the suite only runs after the merge.
+  pull_request:
+    branches: ["main", "next"]
+    paths-ignore:
+      - "**/*.md"
+      - "LICENSE"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # The plugin runs against whatever python3 the host distribution
+        # ships, not one it chooses, so the floor and a current release are
+        # both covered.
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # No install step and no requirements file. The plugin is stdlib-only on
+      # purpose -- it runs from OpenDeck's plugin directory against the host
+      # interpreter, where there is nowhere to install anything to -- and a
+      # dependency creeping in should fail here rather than on someone's deck.
+      - name: Assert the plugin has no third-party imports
+        run: |
+          if grep -rnE '^\s*(import|from)\s+(requests|websockets|pydbus|dbus|gtk|PIL|cairosvg)\b' \
+               dev.gsr.sdPlugin; then
+            echo "::error::third-party import found; the plugin must stay stdlib-only"
+            exit 1
+          fi
+
+      - name: Validate the plugin bundle
+        run: python3 scripts/validate_plugin.py
+
+      - name: Byte-compile every module
+        run: python3 -m compileall -q dev.gsr.sdPlugin scripts tests
+
+      - name: Check the launcher is a valid shell script
+        run: sh -n dev.gsr.sdPlugin/run.sh
+
+      - name: Tests
+        run: python3 -m unittest discover -s tests -t . -v
+
+      - name: Build the release archive
+        run: python3 scripts/package.py
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: matrix.python-version == '3.13'
+        with:
+          name: gpu-screen-recorder-opendeck
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    name: Semantic Release
+    needs: [validate]
+    if: >-
+      github.event_name == 'push' &&
+      contains(fromJson('["refs/heads/main", "refs/heads/next"]'), github.ref)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "lts/*"
+
+      # npm install, not npm ci: there is no lock file, because this repo has
+      # no JavaScript to lock -- node exists here only to run semantic-release.
+      # Every devDependency is pinned to an exact version instead, which is
+      # the property a lock file would have been providing.
+      - run: npm install --no-audit --no-fund
+
+
+      - name: Run semantic-release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@b12c8f6015dc215fe37bc154d4ad456dd3833c90 # v6.0.0
+        with:
+          # Kept in sync with the pin in package.json. Without it the action
+          # uses whatever semantic-release tree it bundles, which is not the
+          # one npm ci just installed the plugins for.
+          semantic_version: 25.0.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

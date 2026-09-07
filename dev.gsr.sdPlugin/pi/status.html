@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GPU Screen Recorder — Status</title>
+<link rel="stylesheet" href="_shared.css" />
+<script src="_shared.js"></script>
+</head>
+<body>
+  <label for="source">Show</label>
+  <select id="source">
+    <option value="auto">Whatever is running</option>
+    <option value="replay">The replay buffer</option>
+    <option value="record">The recording</option>
+    <option value="stream">The stream</option>
+  </select>
+  <p class="hint">
+    A readout, not a button: pressing it does nothing, because there is no
+    sensible single action for "the recorder in general" and guessing one is
+    how a glance at the deck turns into a stopped recording. It answers the
+    question that otherwise means opening the overlay mid-game — whether the
+    right monitor is being captured, at the right frame rate and bitrate.
+  </p>
+  <dl class="state" id="running"></dl>
+  <div style="margin-top:16px;border-top:1px solid #343a42;padding-top:14px">
+    <label for="theme">Colours <span style="font-weight:400;color:#8b929b">
+      — applies to every key</span></label>
+    <select id="theme"></select>
+  </div>
+<script>
+const source = document.getElementById("source");
+GSR.onPayload((payload) => {
+  if (!payload) return;
+  GSR.theme(payload);
+  GSR.running(payload);
+  source.value = GSR.settings().source || "auto";
+});
+source.onchange = () => GSR.save({ source: source.value });
+GSR.report("status inspector loaded");
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GPU Screen Recorder — Record</title>
+<link rel="stylesheet" href="_shared.css" />
+<script src="_shared.js"></script>
+</head>
+<body>
+  <label for="press">Pressing the key</label>
+  <select id="press">
+    <option value="toggle">Starts or stops the recording</option>
+    <option value="pause">Pauses or unpauses it</option>
+  </select>
+  <label for="area" style="margin-top:10px">What to record</label>
+  <select id="area">
+    <option value="auto">Whatever the overlay is set to</option>
+    <option value="region">A region, picked when the key is pressed</option>
+    <option value="window">A window, picked when the key is pressed</option>
+  </select>
+  <p class="hint">
+    With the replay buffer running this key starts a recording inside it,
+    which is what leaves the buffer alone — stopping the recorder itself would
+    take the buffer down with it. The key shows how long the recording has run
+    and how big the file has become; a size that stops growing is a recording
+    that has silently failed.
+  </p>
+  <p class="warn" id="warn" hidden></p>
+  <dl class="state" id="running"></dl>
+  <div style="margin-top:16px;border-top:1px solid #343a42;padding-top:14px">
+    <label for="theme">Colours <span style="font-weight:400;color:#8b929b">
+      — applies to every key</span></label>
+    <select id="theme"></select>
+  </div>
+<script>
+const press = document.getElementById("press");
+const area = document.getElementById("area");
+const warn = document.getElementById("warn");
+GSR.onPayload((payload) => {
+  if (!payload) return;
+  GSR.theme(payload);
+  GSR.running(payload);
+  press.value = GSR.settings().press || "toggle";
+  area.value = GSR.settings().area || "auto";
+  warn.hidden = press.value !== "pause";
+  warn.textContent = "Pause cannot be read back from the recorder, so the key"
+    + " shows what it last asked for. Pausing from a hotkey or the overlay"
+    + " instead will leave the key showing the wrong state until it is"
+    + " pressed again.";
+});
+press.onchange = () => { GSR.save({ press: press.value }); GSR.ask(); };
+area.onchange = () => GSR.save({ area: area.value });
+GSR.report("record inspector loaded");
+</script>
+</body>
+</html>

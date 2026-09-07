@@ -1,0 +1,31 @@
+:root { color-scheme: dark; }
+body {
+  margin: 0; padding: 14px;
+  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #e7eaee; background: #212429;
+}
+label { display: block; margin-bottom: 7px; font-weight: 600; font-size: 12px;
+        letter-spacing: .01em; }
+select {
+  width: 100%; padding: 8px 9px; border-radius: 8px;
+  border: 1px solid #3c424b; background: #2b2f36; color: #f2f4f7;
+  font-size: 13px; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #8b929b 50%),
+                    linear-gradient(135deg, #8b929b 50%, transparent 50%);
+  background-position: right 15px top 17px, right 10px top 17px;
+  background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+}
+select:focus { outline: none; border-color: #3ba7f0; }
+p.hint { margin: 11px 0 0; font-size: 11.5px; color: #99a0aa; }
+p.warn { margin: 11px 0 0; font-size: 11.5px; color: #f5a623;
+         border-left: 2px solid #f5a623; padding-left: 8px; }
+p.ok { margin: 11px 0 0; font-size: 11.5px; color: #3ecf8e;
+       border-left: 2px solid #3ecf8e; padding-left: 8px; }
+label.check { display: flex; align-items: center; gap: 8px;
+              font-weight: 500; margin: 12px 0 0; }
+label.check input { width: 15px; height: 15px; accent-color: #3ba7f0; }
+dl.state { margin: 12px 0 0; font-size: 11.5px; color: #99a0aa; }
+dl.state div { display: flex; justify-content: space-between; padding: 2px 0;
+               border-bottom: 1px solid #2b2f36; }
+dl.state dt { font-weight: 600; color: #c4cad2; }
+dl.state dd { margin: 0; font-variant-numeric: tabular-nums; }

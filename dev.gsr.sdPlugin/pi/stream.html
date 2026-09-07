@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GPU Screen Recorder — Stream</title>
+<link rel="stylesheet" href="_shared.css" />
+<script src="_shared.js"></script>
+</head>
+<body>
+  <p class="hint">
+    Starts and stops streaming to the service set in GPU Screen Recorder,
+    shown on the key with how long it has been live. There is nothing to
+    configure here: the service, the key and the bitrate are the overlay's,
+    and a stream key in a second place holding a different URL would be a way
+    to go live to the wrong account.
+  </p>
+  <p class="warn" id="warn" hidden></p>
+  <p class="ok" id="service" hidden></p>
+  <dl class="state" id="running"></dl>
+  <div style="margin-top:16px;border-top:1px solid #343a42;padding-top:14px">
+    <label for="theme">Colours <span style="font-weight:400;color:#8b929b">
+      — applies to every key</span></label>
+    <select id="theme"></select>
+  </div>
+<script>
+const warn = document.getElementById("warn");
+const service = document.getElementById("service");
+GSR.onPayload((payload) => {
+  if (!payload) return;
+  GSR.theme(payload);
+  GSR.running(payload);
+  service.hidden = !payload.service;
+  service.textContent = "Streaming to " + (payload.service || "");
+  warn.hidden = payload.ui;
+  warn.textContent = "gsr-ui is not running, so this key cannot start a"
+    + " stream.";
+});
+GSR.report("stream inspector loaded");
+</script>
+</body>
+</html>

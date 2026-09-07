@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GPU Screen Recorder — Save Replay</title>
+<link rel="stylesheet" href="_shared.css" />
+<script src="_shared.js"></script>
+</head>
+<body>
+  <label for="seconds">How much to save</label>
+  <select id="seconds"><option value="0">Whole buffer</option></select>
+  <label class="check"><input type="checkbox" id="restart" />
+    Clear the buffer after saving</label>
+  <p class="hint">
+    The key shows the file it wrote for a few seconds afterwards, which is the
+    only sign a save happened — the buffer keeps running and no window opens.
+  </p>
+  <p class="warn" id="warn" hidden></p>
+  <p class="ok" id="ok" hidden></p>
+  <dl class="state" id="running"></dl>
+  <div style="margin-top:16px;border-top:1px solid #343a42;padding-top:14px">
+    <label for="theme">Colours <span style="font-weight:400;color:#8b929b">
+      — applies to every key</span></label>
+    <select id="theme"></select>
+  </div>
+<script>
+const seconds = document.getElementById("seconds");
+const restart = document.getElementById("restart");
+const warn = document.getElementById("warn");
+const ok = document.getElementById("ok");
+
+GSR.onPayload((payload) => {
+  if (!payload) return;
+  GSR.theme(payload);
+  GSR.running(payload);
+  const chosen = String(GSR.settings().seconds || 0);
+  if (payload.lengths) {
+    seconds.innerHTML = "";
+    for (const length of payload.lengths) {
+      if (payload.buffer && length.value > payload.buffer) continue;
+      const option = new Option(length.label, String(length.value));
+      if (String(length.value) === chosen) option.selected = true;
+      seconds.appendChild(option);
+    }
+  }
+  restart.checked = !!GSR.settings().restart;
+  // Without a socket the length is a signal, and there are only six of them.
+  restart.disabled = !payload.exact;
+  ok.hidden = !payload.exact;
+  ok.textContent = "This recorder has an IPC socket: any length saves exactly,"
+    + " and the key knows the name of the file it wrote.";
+  warn.hidden = payload.exact;
+  warn.textContent = "This recorder was started without -ipc, so a save is"
+    + " sent as a signal: only 10s, 30s, 1m, 5m, 10m, 30m and the whole"
+    + " buffer exist, anything else is rounded to the nearest, and the buffer"
+    + " cannot be cleared on save. The key marks a rounded length with *.";
+});
+
+seconds.onchange = () => GSR.save({ seconds: Number(seconds.value) });
+restart.onchange = () => GSR.save({ restart: restart.checked });
+GSR.report("save inspector loaded");
+</script>
+</body>
+</html>

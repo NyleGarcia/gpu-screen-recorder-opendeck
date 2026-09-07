@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GPU Screen Recorder — Screenshot</title>
+<link rel="stylesheet" href="_shared.css" />
+<script src="_shared.js"></script>
+</head>
+<body>
+  <label for="area">What to capture</label>
+  <select id="area">
+    <option value="auto">The screen</option>
+    <option value="region">A region, picked when the key is pressed</option>
+    <option value="window">A window, picked when the key is pressed</option>
+  </select>
+  <p class="hint" id="directory"></p>
+  <p class="warn" id="warn" hidden></p>
+  <dl class="state" id="running"></dl>
+  <div style="margin-top:16px;border-top:1px solid #343a42;padding-top:14px">
+    <label for="theme">Colours <span style="font-weight:400;color:#8b929b">
+      — applies to every key</span></label>
+    <select id="theme"></select>
+  </div>
+<script>
+const area = document.getElementById("area");
+const directory = document.getElementById("directory");
+const warn = document.getElementById("warn");
+GSR.onPayload((payload) => {
+  if (!payload) return;
+  GSR.theme(payload);
+  GSR.running(payload);
+  area.value = GSR.settings().area || "auto";
+  directory.textContent = payload.directory
+    ? "Screenshots are written to " + payload.directory
+      + ", and the key shows the name of the last one for a few seconds."
+    : "The key shows the name of the file it wrote for a few seconds.";
+  warn.hidden = payload.ui;
+  warn.textContent = "gsr-ui is not running, so this key cannot take a"
+    + " screenshot.";
+});
+area.onchange = () => GSR.save({ area: area.value });
+GSR.report("screenshot inspector loaded");
+</script>
+</body>
+</html>
