@@ -104,3 +104,11 @@ dev.gsr.sdPlugin/
     ws.py            a minimal RFC 6455 client
   pi/                property inspectors
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+The plugin drives GPU Screen Recorder as a separate process, through its IPC
+socket, signals and `gsr-ui-cli`, and contains none of its code, so it is not a
+derivative work of it and is not bound by its GPL.
