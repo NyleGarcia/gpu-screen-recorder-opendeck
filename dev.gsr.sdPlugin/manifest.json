@@ -2,7 +2,7 @@
   "Name": "GPU Screen Recorder",
   "Description": "Watch the replay buffer, recording and stream from a Stream Deck, and save the buffer with one key.",
   "Author": "Zedwil",
-  "Version": "0.1.0",
+  "Version": "1.0.0",
   "Icon": "icons/plugin",
   "Category": "GPU Screen Recorder",
   "SDKVersion": 2,
