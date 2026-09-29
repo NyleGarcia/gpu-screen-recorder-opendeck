@@ -1,7 +1,7 @@
 PLUGIN := dev.gsr.sdPlugin
 PLUGINS_DIR := $(HOME)/.config/opendeck/plugins
 
-.PHONY: test validate check package install icons clean
+.PHONY: test validate check package install icons preview clean
 
 test:
 	python3 -m unittest discover -s tests -t . -v
@@ -20,6 +20,10 @@ package:
 # output is committed, so this is run after changing a glyph, not on build.
 icons:
 	python3 scripts/make_icons.py
+
+# Redraws .github/preview.png, the README's picture, from the key renderer.
+preview:
+	python3 scripts/make_preview.py
 
 # Copied rather than symlinked: OpenDeck resolves a plugin's property
 # inspectors relative to the real directory, and refuses paths that

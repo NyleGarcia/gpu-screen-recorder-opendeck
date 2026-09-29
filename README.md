@@ -5,6 +5,8 @@ An [OpenDeck](https://github.com/nekename/OpenDeck) plugin that puts
 Stream Deck: the replay buffer, the recording and the stream visible on the
 keys without leaving the game, and one physical key that saves the buffer.
 
+![The six actions on a deck: Replay, Save Replay, Record, Stream, Screenshot and Status](.github/preview.png)
+
 Linux only, Python only, no dependencies — it runs against whatever `python3`
 the distribution ships.
 
@@ -59,30 +61,88 @@ comes from the config file instead.
 
 ## Requirements
 
-- `gpu-screen-recorder`
-- `gpu-screen-recorder-ui` for `gsr-ui-cli`, if the deck should be able to
-  *start* things rather than only save, stop and report
-- OpenDeck 2.14 or newer, running unsandboxed. Under Flatpak the plugin cannot
-  read `/proc` for other processes or signal them, which is most of what it
-  does.
+| Dependency | Needed for | Notes |
+| --- | --- | --- |
+| Linux | everything | State comes from `/proc`; no other platform has it |
+| [OpenDeck](https://github.com/nekename/OpenDeck) 2.14+ | everything | Must run unsandboxed (AppImage or native package, not Flatpak). The Flatpak sandbox hides other processes' `/proc` entries and blocks signals |
+| `python3` 3.10+ at `/usr/bin/python3` | everything | The system interpreter. Standard library only, so there is nothing to `pip install` |
+| [`gpu-screen-recorder`](https://git.dec05eba.com/gpu-screen-recorder/about/) | everything | The recorder the keys read and control |
+| [`gpu-screen-recorder-ui`](https://git.dec05eba.com/gpu-screen-recorder-ui/about/) | starting replay, record, stream, screenshot | Provides `gsr-ui-cli`. Without it the deck can still save, stop and report on a running recorder |
+
+Tested with `gpu-screen-recorder` 6.1.3 and `gpu-screen-recorder-ui` 1.13.10.
+
+Install the recorder and overlay from your distribution:
+
+```sh
+# Arch / CachyOS / Manjaro
+sudo pacman -S gpu-screen-recorder gpu-screen-recorder-ui
+```
+
+Other distributions: follow the
+[upstream install instructions](https://git.dec05eba.com/gpu-screen-recorder/about/).
 
 ## Install
 
+### From a release
+
+1. Download `gpu-screen-recorder-opendeck-X.Y.Z.zip` from the
+   [latest release](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/releases/latest).
+   Check it against the `.sha256` file next to it with `sha256sum -c`.
+2. Install it with OpenDeck's install-from-file option in the Plugins view, or
+   by hand:
+   ```sh
+   unzip gpu-screen-recorder-opendeck-*.zip -d ~/.config/opendeck/plugins/
+   ```
+3. Restart OpenDeck and drag an action from **GPU Screen Recorder** onto a key.
+
+### From source
+
 ```sh
+git clone https://github.com/NyleGarcia/gpu-screen-recorder-opendeck.git
+cd gpu-screen-recorder-opendeck
 make install     # copies the bundle into ~/.config/opendeck/plugins
 ```
 
-Then restart OpenDeck. To build the archive OpenDeck's installer takes:
+Then restart OpenDeck. It is a copy, not a symlink, so run `make install`
+again after each change. To build the archive OpenDeck's installer takes:
 
 ```sh
-make package     # dist/gpu-screen-recorder-opendeck-<version>.zip
+make package     # dist/gpu-screen-recorder-opendeck-<version>.zip (+ .sha256)
 ```
+
+### Uninstall
+
+```sh
+rm -rf ~/.config/opendeck/plugins/dev.gsr.sdPlugin
+```
+
+## Troubleshooting
+
+**Every key says `gsr-ui not running`.** Starting anything goes through the
+overlay, so `gpu-screen-recorder-ui` has to be installed and running. Check
+that `gsr-ui-cli` is in `/usr/bin` or `~/.local/bin`. The plugin runs with
+exactly that `PATH`, not your shell's. Save Replay still works without the
+overlay while some recorder is running a replay.
+
+**The keys never change, even when recording.** OpenDeck is probably running
+as a Flatpak. The sandbox stops the plugin from reading other processes in
+`/proc` or signalling them. Use the AppImage or a native package instead.
+
+**A save length shows a `*`.** The recorder has no IPC socket, so the save
+goes by signal. Signals only support six fixed lengths, so the key shows the
+nearest one. See [How it talks to the recorder](#how-it-talks-to-the-recorder).
+
+**Where are the logs?** The plugin writes
+`~/.config/opendeck/plugins/dev.gsr.sdPlugin/plugin.log`. Start OpenDeck with
+`GSR_DECK_DEBUG=1` for more detail. OpenDeck keeps the plugin's own output in
+`~/.local/share/opendeck/logs/plugins/dev.gsr.sdPlugin.log`.
 
 ## Development
 
 ```sh
 make check       # bundle validation, byte-compile, and the test suite
 make icons       # redraw the action icons from the key glyphs
+make preview     # redraw .github/preview.png from the key renderer
 ```
 
 The tests fabricate a `/proc` tree and stand up a real unix socket speaking the
