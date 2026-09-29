@@ -24,6 +24,19 @@ the distribution ships.
 Every key draws itself from live state, so a replay started from the overlay's
 hotkey shows on the deck without the deck being touched.
 
+### What the keys look like
+
+| Action | States | |
+| --- | --- | --- |
+| **Replay** | <img src=".github/keys/replay-idle.png" width="96" alt="Replay off"> <img src=".github/keys/replay-filling.png" width="96" alt="Replay filling"> <img src=".github/keys/replay-full.png" width="96" alt="Replay full"> <img src=".github/keys/replay-unavailable.png" width="96" alt="Replay, overlay not running"> | off · filling (bar = how much a save gets) · full · overlay not running |
+| **Save Replay** | <img src=".github/keys/save-ready.png" width="96" alt="Save ready"> <img src=".github/keys/save-signal.png" width="96" alt="Save by signal, length rounded"> <img src=".github/keys/save-saved.png" width="96" alt="Save just wrote a file"> <img src=".github/keys/save-off.png" width="96" alt="Save with replay off"> | ready · `*` = rounded to a signal length · just saved · replay off |
+| **Record** | <img src=".github/keys/record-idle.png" width="96" alt="Record idle"> <img src=".github/keys/record-recording.png" width="96" alt="Recording"> <img src=".github/keys/record-paused.png" width="96" alt="Recording paused"> <img src=".github/keys/record-in-replay.png" width="96" alt="Recording inside a replay"> | idle · recording · paused · recording inside a replay |
+| **Stream** | <img src=".github/keys/stream-idle.png" width="96" alt="Stream idle"> <img src=".github/keys/stream-live.png" width="96" alt="Streaming live"> | idle · live |
+| **Screenshot** | <img src=".github/keys/screenshot-ready.png" width="96" alt="Screenshot ready"> <img src=".github/keys/screenshot-saved.png" width="96" alt="Screenshot just saved"> | ready · just saved |
+| **Status** | <img src=".github/keys/status-idle.png" width="96" alt="Status idle"> <img src=".github/keys/status-replay.png" width="96" alt="Status during a replay"> | idle · replay running |
+
+These are drawn by the plugin's own renderer (`make preview`), not mocked up.
+
 ## How it talks to the recorder
 
 There is no status request in GPU Screen Recorder's protocol, so state is read
@@ -142,7 +155,7 @@ nearest one. See [How it talks to the recorder](#how-it-talks-to-the-recorder).
 ```sh
 make check       # bundle validation, byte-compile, and the test suite
 make icons       # redraw the action icons from the key glyphs
-make preview     # redraw .github/preview.png from the key renderer
+make preview     # redraw the README images from the key renderer
 ```
 
 The tests fabricate a `/proc` tree and stand up a real unix socket speaking the

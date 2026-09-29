@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Draw the README's preview image from the keys' own renderer.
+"""Draw the README's pictures from the keys' own renderer.
 
 Each action is painted in a representative live state and laid out as a deck,
-so the picture on the repository page is the same art a deck shows rather than
-a mock-up that drifts from it. Run after changing how a key draws; the output
-is committed.
+and each is also written on its own in every state worth showing, so the
+pictures on the repository page are the same art a deck shows rather than
+mock-ups that drift from it. Run after changing how a key draws; the output is
+committed.
 """
 
 import os
@@ -19,6 +20,7 @@ from gsrdeck import render                          # noqa: E402
 
 OUT_SVG = os.path.join(ROOT, ".github", "preview.svg")
 OUT_PNG = os.path.join(ROOT, ".github", "preview.png")
+KEYS_DIR = os.path.join(ROOT, ".github", "keys")
 COLUMNS = 3
 GAP = 24
 PAD = 32
@@ -38,6 +40,52 @@ def keys():
                            f"2 audio · {render.size(640 << 20)} RAM"],
                           "REPLAY", "good"),
     ]
+
+
+def states():
+    """action -> [(state, svg)], in the order the README shows them."""
+    render.set_theme("default")
+    clip = os.path.expanduser("~/Videos/Replay_2026-09-28_21-14-03.mp4")
+    shot = os.path.expanduser("~/Pictures/Screenshot_2026-09-28_21-15-40.png")
+    off = "gsr-ui not running"
+    return {
+        "replay": [
+            ("idle", render.replay_key(False, 120)),
+            ("filling", render.replay_key(True, 120, fill=0.62, age=75)),
+            ("full", render.replay_key(True, 120, fill=1.0, age=900)),
+            ("unavailable", render.replay_key(False, 0, unavailable=True,
+                                              note=off)),
+        ],
+        "save": [
+            ("ready", render.save_key("30s", True)),
+            ("signal", render.save_key("30s*", True)),
+            ("saved", render.save_key("30s", True, flash=clip)),
+            ("off", render.save_key("30s", False, note="replay is off")),
+        ],
+        "record": [
+            ("idle", render.record_key(False)),
+            ("recording", render.record_key(True, 754, 1_480_000_000)),
+            ("paused", render.record_key(True, 754, 1_480_000_000,
+                                         paused=True)),
+            ("in-replay", render.record_key(True, 42, 96_000_000,
+                                            in_replay=True)),
+        ],
+        "stream": [
+            ("idle", render.stream_key(False, "Twitch")),
+            ("live", render.stream_key(True, "Twitch", 3725)),
+        ],
+        "screenshot": [
+            ("ready", render.screenshot_key("Region")),
+            ("saved", render.screenshot_key("Region", flash=shot)),
+        ],
+        "status": [
+            ("idle", render.status_key(["nothing is recording",
+                                        "replay 2m · ram",
+                                        "stream Twitch", "gsr-ui up"],
+                                       "IDLE", "idle")),
+            ("replay", keys()[5]),
+        ],
+    }
 
 
 def compose(svgs):
@@ -84,6 +132,17 @@ def main():
         return 1
     os.remove(OUT_SVG)
     print(OUT_PNG)
+
+    os.makedirs(KEYS_DIR, exist_ok=True)
+    for action, variants in states().items():
+        for state, key in variants:
+            base = os.path.join(KEYS_DIR, f"{action}-{state}")
+            with open(base + ".svg", "w", encoding="utf-8") as handle:
+                handle.write(key)
+            if not rasterise(base + ".svg", base + ".png"):
+                return 1
+            os.remove(base + ".svg")
+            print(base + ".png")
     return 0
 
 

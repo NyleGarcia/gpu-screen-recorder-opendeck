@@ -21,7 +21,8 @@ package:
 icons:
 	python3 scripts/make_icons.py
 
-# Redraws .github/preview.png, the README's picture, from the key renderer.
+# Redraws the README's images (.github/preview.png, .github/keys/) from the
+# key renderer.
 preview:
 	python3 scripts/make_preview.py
 
