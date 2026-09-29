@@ -471,7 +471,7 @@ def status_key(lines, headline="Idle", accent_name="idle"):
     body += _corner(_fit(headline, 8), accent, y=32, size=17, weight="bold")
     top = 62
     for index, line in enumerate(lines[:4]):
-        body += _text_block([_fit(line, 20)], top + index * 19, 14,
+        body += _text_block([_fit(line, 20)], top + index * 19, 13,
                             THEME["text"] if index == 0 else THEME["dim"],
                             weight="600" if index == 0 else "400")
     return _document(body, accent)
