@@ -11,6 +11,7 @@ Python and the release should build on a machine that has nothing else, which
 a missing zip binary would otherwise be the one exception to.
 """
 
+import hashlib
 import json
 import os
 import shutil
@@ -52,6 +53,11 @@ def main():
                 info.compress_type = zipfile.ZIP_DEFLATED
                 with open(path, "rb") as handle:
                     archive.writestr(info, handle.read())
+    # sha256sum's own format, so `sha256sum -c` checks the download as-is.
+    with open(out, "rb") as handle:
+        digest = hashlib.sha256(handle.read()).hexdigest()
+    with open(out + ".sha256", "w", encoding="utf-8") as handle:
+        handle.write(f"{digest}  {os.path.basename(out)}\n")
     print(out)
     return 0
 

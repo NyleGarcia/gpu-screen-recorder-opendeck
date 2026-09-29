@@ -23,6 +23,10 @@
           {
             "path": "dist/gpu-screen-recorder-opendeck-*.zip",
             "label": "OpenDeck plugin"
+          },
+          {
+            "path": "dist/gpu-screen-recorder-opendeck-*.zip.sha256",
+            "label": "SHA-256 checksum"
           }
         ]
       }
