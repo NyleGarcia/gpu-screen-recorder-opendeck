@@ -1,3 +1,15 @@
+# [2.0.0](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/compare/v1.0.1...v2.0.0) (2026-10-12)
+
+
+* feat!: rename bundle ID to systems.garcia.gsr, author to NyleGarcia ([2a5e858](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/commit/2a5e8589c529cc8bc1259328616e947d84d51d6e))
+
+
+### BREAKING CHANGES
+
+* the plugin directory and every action UUID change from
+dev.gsr.* to systems.garcia.gsr.*. OpenDeck treats this as a new plugin, so keys
+configured against the old actions need to be re-added after updating.
+
 ## [1.0.1](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/compare/v1.0.0...v1.0.1) (2026-09-29)
 
 
