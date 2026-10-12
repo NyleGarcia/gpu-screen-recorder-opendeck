@@ -126,7 +126,7 @@ make package     # dist/gpu-screen-recorder-opendeck-<version>.zip (+ .sha256)
 ### Uninstall
 
 ```sh
-rm -rf ~/.config/opendeck/plugins/dev.gsr.sdPlugin
+rm -rf ~/.config/opendeck/plugins/systems.garcia.gsr.sdPlugin
 ```
 
 ## Troubleshooting
@@ -146,9 +146,9 @@ goes by signal. Signals only support six fixed lengths, so the key shows the
 nearest one. See [How it talks to the recorder](#how-it-talks-to-the-recorder).
 
 **Where are the logs?** The plugin writes
-`~/.config/opendeck/plugins/dev.gsr.sdPlugin/plugin.log`. Start OpenDeck with
+`~/.config/opendeck/plugins/systems.garcia.gsr.sdPlugin/plugin.log`. Start OpenDeck with
 `GSR_DECK_DEBUG=1` for more detail. OpenDeck keeps the plugin's own output in
-`~/.local/share/opendeck/logs/plugins/dev.gsr.sdPlugin.log`.
+`~/.local/share/opendeck/logs/plugins/systems.garcia.gsr.sdPlugin.log`.
 
 ## Development
 
@@ -165,7 +165,7 @@ recorder.
 ## Layout
 
 ```
-dev.gsr.sdPlugin/
+systems.garcia.gsr.sdPlugin/
   manifest.json      the actions OpenDeck offers
   run.sh             launcher; scrubs the AppImage's Python environment
   plugin.py          the event loop and one renderer per action

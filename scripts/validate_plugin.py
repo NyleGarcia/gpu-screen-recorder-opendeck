@@ -14,7 +14,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUNDLE = os.path.join(ROOT, "dev.gsr.sdPlugin")
+BUNDLE = os.path.join(ROOT, "systems.garcia.gsr.sdPlugin")
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 # The oldest Python the plugin claims to run on. It executes against whatever
 # python3 the host distribution ships, not one it chooses, so syntax newer

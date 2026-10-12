@@ -10,7 +10,7 @@ import sys
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "dev.gsr.sdPlugin"))
+sys.path.insert(0, os.path.join(ROOT, "systems.garcia.gsr.sdPlugin"))
 
 import plugin as gsr_plugin                          # noqa: E402
 from gsrdeck import control                          # noqa: E402

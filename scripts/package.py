@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the release archive OpenDeck installs from.
 
-The zip contains the dev.gsr.sdPlugin directory at its root, which is what
+The zip contains the systems.garcia.gsr.sdPlugin directory at its root, which is what
 OpenDeck's installer expects: it extracts straight into the plugins directory,
 so a zip of the directory's *contents* silently installs a broken plugin with
 no manifest where one is expected.
@@ -19,7 +19,7 @@ import sys
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUNDLE = "dev.gsr.sdPlugin"
+BUNDLE = "systems.garcia.gsr.sdPlugin"
 # Bytecode compiled by one Python is loaded in preference to source by
 # another, and the plugin runs against whatever python3 the host has. The log
 # is the plugin's own scratch file and has no business in a release.

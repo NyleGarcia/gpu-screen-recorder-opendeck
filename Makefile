@@ -1,4 +1,4 @@
-PLUGIN := dev.gsr.sdPlugin
+PLUGIN := systems.garcia.gsr.sdPlugin
 PLUGINS_DIR := $(HOME)/.config/opendeck/plugins
 
 .PHONY: test validate check package install icons preview clean

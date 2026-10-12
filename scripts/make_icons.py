@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUNDLE = os.path.join(ROOT, "dev.gsr.sdPlugin")
+BUNDLE = os.path.join(ROOT, "systems.garcia.gsr.sdPlugin")
 ICONS = os.path.join(BUNDLE, "icons")
 sys.path.insert(0, BUNDLE)
 

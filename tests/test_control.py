@@ -18,7 +18,7 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))), "dev.gsr.sdPlugin"))
+    os.path.abspath(__file__))), "systems.garcia.gsr.sdPlugin"))
 
 from gsrdeck import control                          # noqa: E402
 

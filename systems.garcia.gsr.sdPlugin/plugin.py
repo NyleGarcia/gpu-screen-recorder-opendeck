@@ -46,12 +46,12 @@ logging.basicConfig(
 )
 log = logging.getLogger("gsr-deck")
 
-REPLAY = "dev.gsr.replay"
-SAVE = "dev.gsr.save"
-RECORD = "dev.gsr.record"
-STREAM = "dev.gsr.stream"
-SCREENSHOT = "dev.gsr.screenshot"
-STATUS = "dev.gsr.status"
+REPLAY = "systems.garcia.gsr.replay"
+SAVE = "systems.garcia.gsr.save"
+RECORD = "systems.garcia.gsr.record"
+STREAM = "systems.garcia.gsr.stream"
+SCREENSHOT = "systems.garcia.gsr.screenshot"
+STATUS = "systems.garcia.gsr.status"
 
 # Keys are redrawn on this cadence so a recording's clock ticks and a change
 # made in the overlay shows up without the deck being touched first.

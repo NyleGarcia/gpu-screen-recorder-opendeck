@@ -1,7 +1,7 @@
 {
   "Name": "GPU Screen Recorder",
   "Description": "Watch the replay buffer, recording and stream from a Stream Deck, and save the buffer with one key.",
-  "Author": "Zedwil",
+  "Author": "NyleGarcia",
   "Version": "1.0.1",
   "Icon": "icons/plugin",
   "Category": "GPU Screen Recorder",
@@ -20,7 +20,7 @@
   "Actions": [
     {
       "Name": "Replay",
-      "UUID": "dev.gsr.replay",
+      "UUID": "systems.garcia.gsr.replay",
       "Icon": "icons/replay",
       "Tooltip": "Whether the replay buffer is running, how long it is and how full. Press to start or stop it.",
       "Controllers": ["Keypad"],
@@ -35,7 +35,7 @@
     },
     {
       "Name": "Save Replay",
-      "UUID": "dev.gsr.save",
+      "UUID": "systems.garcia.gsr.save",
       "Icon": "icons/save",
       "Tooltip": "Save the replay buffer, whole or the last few minutes, and show the file it wrote.",
       "Controllers": ["Keypad"],
@@ -50,7 +50,7 @@
     },
     {
       "Name": "Record",
-      "UUID": "dev.gsr.record",
+      "UUID": "systems.garcia.gsr.record",
       "Icon": "icons/record",
       "Tooltip": "Start and stop a recording, including one running inside the replay buffer. Shows elapsed time and file size.",
       "Controllers": ["Keypad"],
@@ -65,7 +65,7 @@
     },
     {
       "Name": "Stream",
-      "UUID": "dev.gsr.stream",
+      "UUID": "systems.garcia.gsr.stream",
       "Icon": "icons/stream",
       "Tooltip": "Start and stop streaming, with the service and how long it has been live.",
       "Controllers": ["Keypad"],
@@ -80,7 +80,7 @@
     },
     {
       "Name": "Screenshot",
-      "UUID": "dev.gsr.screenshot",
+      "UUID": "systems.garcia.gsr.screenshot",
       "Icon": "icons/screenshot",
       "Tooltip": "Take a screenshot of the screen, a region or a window, and show the file it wrote.",
       "Controllers": ["Keypad"],
@@ -95,7 +95,7 @@
     },
     {
       "Name": "Status",
-      "UUID": "dev.gsr.status",
+      "UUID": "systems.garcia.gsr.status",
       "Icon": "icons/status",
       "Tooltip": "A read-only readout: what is capturing, from which monitor, at what frame rate, codec and bitrate.",
       "Controllers": ["Keypad"],

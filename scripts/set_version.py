@@ -13,7 +13,7 @@ import sys
 
 MANIFEST = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "dev.gsr.sdPlugin", "manifest.json")
+    "systems.garcia.gsr.sdPlugin", "manifest.json")
 
 
 def main(version):
