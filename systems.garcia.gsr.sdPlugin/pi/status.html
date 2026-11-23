@@ -8,14 +8,14 @@
 <script src="_shared.js"></script>
 </head>
 <body>
-  <label for="source">Show</label>
+  <label for="source" data-i18n="pi.status.source">Show</label>
   <select id="source">
-    <option value="auto">Whatever is running</option>
-    <option value="replay">The replay buffer</option>
-    <option value="record">The recording</option>
-    <option value="stream">The stream</option>
+    <option value="auto" data-i18n="pi.status.source.auto">Whatever is running</option>
+    <option value="replay" data-i18n="pi.status.source.replay">The replay buffer</option>
+    <option value="record" data-i18n="pi.status.source.record">The recording</option>
+    <option value="stream" data-i18n="pi.status.source.stream">The stream</option>
   </select>
-  <p class="hint">
+  <p class="hint" data-i18n="pi.status.hint">
     A readout, not a button: pressing it does nothing, because there is no
     sensible single action for "the recorder in general" and guessing one is
     how a glance at the deck turns into a stopped recording. It answers the
@@ -24,8 +24,9 @@
   </p>
   <dl class="state" id="running"></dl>
   <div style="margin-top:16px;border-top:1px solid #343a42;padding-top:14px">
-    <label for="theme">Colours <span style="font-weight:400;color:#8b929b">
-      — applies to every key</span></label>
+    <label for="theme"><span data-i18n="pi.colours">Colours</span>
+      <span style="font-weight:400;color:#8b929b"
+        data-i18n="pi.colours_scope">— applies to every key</span></label>
     <select id="theme"></select>
   </div>
 <script>

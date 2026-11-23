@@ -1,0 +1,137 @@
+{
+  "Name": "GPU Screen Recorder",
+  "Description": "Watch the replay buffer, recording and stream from a Stream Deck, and save the buffer with one key.",
+  "systems.garcia.gsr.replay": {
+    "Name": "Replay",
+    "Tooltip": "Whether the replay buffer is running, how long it is and how full. Press to start or stop it."
+  },
+  "systems.garcia.gsr.save": {
+    "Name": "Save Replay",
+    "Tooltip": "Save the replay buffer, whole or the last few minutes, and show the file it wrote."
+  },
+  "systems.garcia.gsr.record": {
+    "Name": "Record",
+    "Tooltip": "Start and stop a recording, including one running inside the replay buffer. Shows elapsed time and file size."
+  },
+  "systems.garcia.gsr.stream": {
+    "Name": "Stream",
+    "Tooltip": "Start and stop streaming, with the service and how long it has been live."
+  },
+  "systems.garcia.gsr.screenshot": {
+    "Name": "Screenshot",
+    "Tooltip": "Take a screenshot of the screen, a region or a window, and show the file it wrote."
+  },
+  "systems.garcia.gsr.status": {
+    "Name": "Status",
+    "Tooltip": "A read-only readout: what is capturing, from which monitor, at what frame rate, codec and bitrate."
+  },
+  "Localization": {
+    "key.off": "OFF",
+    "key.on": "ON",
+    "key.live": "LIVE",
+    "key.rec": "REC",
+    "key.paused": "PAUSED",
+    "key.saved": "SAVED",
+    "key.saved_file": "saved",
+    "key.all": "ALL",
+    "key.press_to_start": "press to start",
+    "key.starting": "starting…",
+    "key.ui_not_running": "gsr-ui not running",
+    "key.replay_off": "replay is off",
+
+    "key.replay.title": "Replay",
+    "key.replay.buffer_length": "{length} buffer",
+    "key.replay.buffer_storage": "buffer · {storage}",
+    "key.replay.filling": "{clock} in",
+    "key.replay.up": "up {clock}",
+
+    "key.save.title": "Save",
+    "key.save.subtitle": "replay",
+    "key.save.unavailable": "Save replay",
+    "key.save.saving": "Saving…",
+
+    "key.record.title": "Record",
+    "key.record.during_replay": "during replay",
+    "key.record.in_replay": "in replay",
+
+    "key.stream.title": "Stream",
+    "key.stream.streaming": "streaming",
+
+    "key.screenshot.title": "Screenshot",
+    "key.area.auto": "full screen",
+    "key.area.region": "region",
+    "key.area.window": "window",
+
+    "key.status.idle": "IDLE",
+    "key.status.replay": "REPLAY",
+    "key.status.nothing": "nothing is recording",
+    "key.status.replay_line": "replay {length} · {storage}",
+    "key.status.stream_line": "stream {service}",
+    "key.status.ui_up": "gsr-ui up",
+    "key.status.ui_down": "gsr-ui down",
+    "key.status.buffer": "{length} buffer · {storage}",
+    "key.status.recording": "recording {clock}",
+    "key.status.live": "live {clock}",
+    "key.status.capture": "{capture} · {fps} fps",
+    "key.status.unknown": "unknown",
+    "key.status.audio": "{count} audio · {size} RAM",
+
+    "theme.default": "Default",
+    "theme.amber": "Amber",
+    "theme.violet": "Violet",
+    "theme.mono": "Monochrome",
+    "theme.contrast": "High contrast",
+    "theme.light": "Light",
+
+    "pi.colours": "Colours",
+    "pi.colours_scope": "— applies to every key",
+    "pi.whole_buffer": "Whole buffer",
+    "pi.running.not_installed": "not installed",
+    "pi.running.running": "running",
+    "pi.running.not_running": "not running",
+    "pi.running.recorder": "recorder",
+    "pi.running.nothing": "nothing running",
+    "pi.ui_not_running.start": "gsr-ui is not running, so this key cannot start the replay. Existing recorders can still be saved and stopped.",
+    "pi.ui_cli_missing": "gsr-ui-cli was not found. Install gpu-screen-recorder-ui to start and stop recording from the deck.",
+
+    "pi.replay.press": "Pressing the key",
+    "pi.replay.press.toggle": "Starts or stops the replay",
+    "pi.replay.press.start": "Only starts it",
+    "pi.replay.press.stop": "Only stops it",
+    "pi.replay.hint": "The buffer's length, quality and audio tracks come from GPU Screen Recorder's own settings — this key starts what the overlay is configured to start, so the deck and the overlay can never disagree. While the buffer is still filling the key shows how full it is; a save before then is shorter than the buffer's length.",
+
+    "pi.save.seconds": "How much to save",
+    "pi.save.hidden": "Lengths longer than the replay buffer ({length}) are hidden. Make the replay longer in GPU Screen Recorder's settings to save more.",
+    "pi.save.restart": "Clear the buffer after saving",
+    "pi.save.hint": "The key shows the file it wrote for a few seconds afterwards, which is the only sign a save happened — the buffer keeps running and no window opens.",
+    "pi.save.exact": "This recorder has an IPC socket: any length saves exactly, and the key knows the name of the file it wrote.",
+    "pi.save.signal": "This recorder was started without -ipc, so a save is sent as a signal: only 10s, 30s, 1m, 5m, 10m, 30m and the whole buffer exist, anything else is rounded to the nearest, and the buffer cannot be cleared on save. The key marks a rounded length with *.",
+
+    "pi.record.press": "Pressing the key",
+    "pi.record.press.toggle": "Starts or stops the recording",
+    "pi.record.press.pause": "Pauses or unpauses it",
+    "pi.record.area": "What to record",
+    "pi.record.area.auto": "Whatever the overlay is set to",
+    "pi.area.region": "A region, picked when the key is pressed",
+    "pi.area.window": "A window, picked when the key is pressed",
+    "pi.record.hint": "With the replay buffer running this key starts a recording inside it, which is what leaves the buffer alone — stopping the recorder itself would take the buffer down with it. The key shows how long the recording has run and how big the file has become; a size that stops growing is a recording that has silently failed.",
+    "pi.record.pause_warn": "Pause cannot be read back from the recorder, so the key shows what it last asked for. Pausing from a hotkey or the overlay instead will leave the key showing the wrong state until it is pressed again.",
+
+    "pi.stream.hint": "Starts and stops streaming to the service set in GPU Screen Recorder, shown on the key with how long it has been live. There is nothing to configure here: the service, the key and the bitrate are the overlay's, and a stream key in a second place holding a different URL would be a way to go live to the wrong account.",
+    "pi.stream.service": "Streaming to {service}",
+    "pi.stream.ui_not_running": "gsr-ui is not running, so this key cannot start a stream.",
+
+    "pi.screenshot.area": "What to capture",
+    "pi.screenshot.area.auto": "The screen",
+    "pi.screenshot.directory": "Screenshots are written to {directory}, and the key shows the name of the last one for a few seconds.",
+    "pi.screenshot.no_directory": "The key shows the name of the file it wrote for a few seconds.",
+    "pi.screenshot.ui_not_running": "gsr-ui is not running, so this key cannot take a screenshot.",
+
+    "pi.status.source": "Show",
+    "pi.status.source.auto": "Whatever is running",
+    "pi.status.source.replay": "The replay buffer",
+    "pi.status.source.record": "The recording",
+    "pi.status.source.stream": "The stream",
+    "pi.status.hint": "A readout, not a button: pressing it does nothing, because there is no sensible single action for \"the recorder in general\" and guessing one is how a glance at the deck turns into a stopped recording. It answers the question that otherwise means opening the overlay mid-game — whether the right monitor is being captured, at the right frame rate and bitrate."
+  }
+}

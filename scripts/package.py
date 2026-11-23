@@ -53,6 +53,18 @@ def main():
                 info.compress_type = zipfile.ZIP_DEFLATED
                 with open(path, "rb") as handle:
                     archive.writestr(info, handle.read())
+        # OpenDeck reads a plugin's translations from <code>.json next to
+        # manifest.json. They are kept in lang/ in the source and copied up
+        # here, so there is one file per language to edit.
+        lang = os.path.join(ROOT, BUNDLE, "lang")
+        for name in sorted(os.listdir(lang)):
+            if not name.endswith(".json"):
+                continue
+            path = os.path.join(lang, name)
+            info = zipfile.ZipInfo.from_file(path, f"{BUNDLE}/{name}")
+            info.compress_type = zipfile.ZIP_DEFLATED
+            with open(path, "rb") as handle:
+                archive.writestr(info, handle.read())
     # sha256sum's own format, so `sha256sum -c` checks the download as-is.
     with open(out, "rb") as handle:
         digest = hashlib.sha256(handle.read()).hexdigest()

@@ -94,6 +94,58 @@ def resolve_image(reference):
                for suffix in IMAGE_SUFFIXES)
 
 
+PLACEHOLDER = re.compile(r"\{(\w+)\}")
+
+
+def check_languages(manifest):
+    """Every lang/<code>.json says the same things as lang/en.json.
+
+    Same Localization keys and the same {placeholders} in each: a missing key
+    falls back to English, which is fine, but a renamed placeholder shows its
+    braces on someone's key. en.json also has to agree with the manifest,
+    since OpenDeck shows one and falls back to the other.
+    """
+    lang = os.path.join(BUNDLE, "lang")
+    files = {}
+    for name in sorted(os.listdir(lang)) if os.path.isdir(lang) else []:
+        if not name.endswith(".json"):
+            continue
+        try:
+            files[name[:-5]] = json.load(open(os.path.join(lang, name),
+                                              encoding="utf-8"))
+        except ValueError as exc:
+            problems.append(f"lang/{name} is not valid JSON: {exc}")
+    if not check("en" in files, "lang/en.json is missing"):
+        return
+    reference = files["en"].get("Localization") or {}
+    check(files["en"].get("Name") == manifest.get("Name"),
+          "lang/en.json Name differs from the manifest")
+    actions = {action.get("UUID"): action
+               for action in manifest.get("Actions") or []}
+    for code, data in files.items():
+        strings = data.get("Localization")
+        if not check(isinstance(strings, dict),
+                     f"lang/{code}.json has no Localization object"):
+            continue
+        for uuid, action in actions.items():
+            entry = data.get(uuid) or {}
+            check(entry.get("Name") and entry.get("Tooltip"),
+                  f"lang/{code}.json: {uuid} needs a Name and a Tooltip")
+            if code == "en":
+                check(entry.get("Name") == action.get("Name")
+                      and entry.get("Tooltip") == action.get("Tooltip"),
+                      f"lang/en.json: {uuid} differs from the manifest")
+        for key in sorted(set(reference) - set(strings)):
+            problems.append(f"lang/{code}.json is missing {key}")
+        for key in sorted(set(strings) - set(reference)):
+            problems.append(f"lang/{code}.json has {key}, which en.json "
+                            f"does not")
+        for key in sorted(set(strings) & set(reference)):
+            check(set(PLACEHOLDER.findall(strings[key]))
+                  == set(PLACEHOLDER.findall(reference[key])),
+                  f"lang/{code}.json: {key} has different placeholders")
+
+
 def main():
     manifest_path = os.path.join(BUNDLE, "manifest.json")
     if not check(os.path.isfile(manifest_path), "manifest.json is missing"):
@@ -152,6 +204,8 @@ def main():
                           f"{uuid}: layout {layout} has an item missing "
                           f"key/type/rect")
 
+    check_languages(manifest)
+
     for path in _modules():
         check_old_grammar(path)
 
@@ -159,7 +213,7 @@ def main():
     # a module left out of a release zip is only discovered on someone's deck.
     for module in ("plugin.py", "gsrdeck/ws.py", "gsrdeck/state.py",
                    "gsrdeck/control.py", "gsrdeck/config.py",
-                   "gsrdeck/render.py"):
+                   "gsrdeck/render.py", "gsrdeck/i18n.py"):
         check(os.path.isfile(os.path.join(BUNDLE, module)),
               f"{module} is missing from the bundle")
 
