@@ -176,6 +176,50 @@ class DirectoryTests(unittest.TestCase):
         self.assertTrue(os.path.exists(newest))
 
 
+class UiCliTests(unittest.TestCase):
+    """Where gsr-ui-cli is found: on PATH, or inside the Flathub app."""
+
+    def setUp(self):
+        self.bin = tempfile.mkdtemp()
+        self.apps = tempfile.mkdtemp()
+        self.saved = (os.environ.get("PATH"), control._FLATPAK_APP_DIRS,
+                      control._ui_cli_command)
+        os.environ["PATH"] = self.bin
+        control._FLATPAK_APP_DIRS = (self.apps,)
+        control._ui_cli_command = None
+
+    def tearDown(self):
+        path, control._FLATPAK_APP_DIRS, control._ui_cli_command = self.saved
+        os.environ["PATH"] = path or ""
+        shutil.rmtree(self.bin)
+        shutil.rmtree(self.apps)
+
+    def _tool(self, name):
+        path = os.path.join(self.bin, name)
+        with open(path, "w") as handle:
+            handle.write("#!/bin/sh\n")
+        os.chmod(path, 0o755)
+        return path
+
+    def test_a_cli_on_path_is_used_directly(self):
+        cli = self._tool("gsr-ui-cli")
+        self._tool("flatpak")
+        os.mkdir(os.path.join(self.apps, control.FLATPAK_APP))
+        self.assertEqual(control._find_ui_cli(), [cli])
+
+    def test_the_flatpak_app_is_used_when_nothing_is_on_path(self):
+        flatpak = self._tool("flatpak")
+        os.mkdir(os.path.join(self.apps, control.FLATPAK_APP))
+        self.assertEqual(control._find_ui_cli(), [
+            flatpak, "run", "--command=gsr-ui-cli", control.FLATPAK_APP])
+        self.assertTrue(control.ui_cli_available())
+
+    def test_flatpak_without_the_app_is_not_a_cli(self):
+        self._tool("flatpak")
+        self.assertEqual(control._find_ui_cli(), [])
+        self.assertFalse(control.ui_cli_available())
+
+
 class VerbTests(unittest.TestCase):
     def test_saving_with_no_replay_running_is_a_clean_failure(self):
         result = control.save_replay(None)

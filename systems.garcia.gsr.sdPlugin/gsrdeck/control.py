@@ -181,14 +181,49 @@ def newest_file(directory):
 
 
 # -------------------------------------------------------------- gsr-ui-cli
-_ui_cli_path = None
+# The Flathub build of GPU Screen Recorder keeps gsr-ui-cli inside its own
+# sandbox, next to the gsr-ui it talks to, so it is not on any PATH. Run
+# through `flatpak run` it shares the overlay's runtime directory and reaches
+# its socket.
+FLATPAK_APP = "com.dec05eba.gpu_screen_recorder"
+_FLATPAK_APP_DIRS = (
+    "/var/lib/flatpak/app",
+    os.path.expanduser("~/.local/share/flatpak/app"),
+)
+
+_ui_cli_command = None
+
+
+def _flatpak_app_installed(app=FLATPAK_APP):
+    return any(os.path.isdir(os.path.join(root, app))
+               for root in _FLATPAK_APP_DIRS)
+
+
+def _find_ui_cli():
+    """The command that runs gsr-ui-cli, as a list, or [] if there is none."""
+    path = _which(UI_CLI)
+    if path:
+        return [path]
+    flatpak = _which("flatpak")
+    if flatpak and _flatpak_app_installed():
+        return [flatpak, "run", f"--command={UI_CLI}", FLATPAK_APP]
+    return []
 
 
 def ui_cli_available():
-    global _ui_cli_path
-    if _ui_cli_path is None:
-        _ui_cli_path = _which(UI_CLI) or ""
-    return bool(_ui_cli_path)
+    global _ui_cli_command
+    if _ui_cli_command is None:
+        _ui_cli_command = _find_ui_cli()
+    return bool(_ui_cli_command)
+
+
+def sandboxed():
+    """Whether the plugin is stuck inside a Flatpak sandbox.
+
+    run.sh leaves the sandbox when it can; this is true only when it could
+    not, and then nothing outside the sandbox can be seen or controlled.
+    """
+    return os.path.exists("/.flatpak-info")
 
 
 def _which(name):
@@ -220,21 +255,26 @@ def ui_running():
     return False
 
 
-def ui_cli(command, timeout=5.0):
+def ui_cli(command, timeout=15.0):
     """Ask the overlay to do something. It does not report back.
 
     gsr-ui-cli writes the command to the running overlay and exits; a non-zero
     exit means the command could not be delivered, not that it failed, and a
     zero exit does not mean a recorder started. The caller confirms by looking
-    at what is running a moment later.
+    at what is running a moment later. The timeout allows for `flatpak run`,
+    which takes a moment to set up the sandbox before the CLI runs.
     """
     if not ui_cli_available():
+        if sandboxed():
+            return Result(False, "ui", error=(
+                "OpenDeck's Flatpak sandbox hides gsr-ui-cli; allow "
+                "org.freedesktop.Flatpak or run OpenDeck unsandboxed"))
         return Result(False, "ui", error="gsr-ui-cli is not installed")
     if not ui_running():
         return Result(False, "ui", error="gsr-ui is not running")
     try:
         finished = subprocess.run(
-            [_ui_cli_path, command], timeout=timeout,
+            _ui_cli_command + [command], timeout=timeout,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except (OSError, subprocess.SubprocessError) as exc:
         return Result(False, "ui", error=str(exc))

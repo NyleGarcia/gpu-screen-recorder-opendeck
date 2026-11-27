@@ -77,10 +77,10 @@ comes from the config file instead.
 | Dependency | Needed for | Notes |
 | --- | --- | --- |
 | Linux | everything | State comes from `/proc`; no other platform has it |
-| [OpenDeck](https://github.com/nekename/OpenDeck) 2.14+ | everything | Must run unsandboxed (AppImage or native package, not Flatpak). The Flatpak sandbox hides other processes' `/proc` entries and blocks signals |
+| [OpenDeck](https://github.com/nekename/OpenDeck) 2.14+ | everything | AppImage, native package or Flathub. Under Flatpak the plugin moves itself out of the sandbox with `flatpak-spawn --host`, which needs the `org.freedesktop.Flatpak` permission the Flathub build already has |
 | `python3` 3.10+ at `/usr/bin/python3` | everything | The system interpreter. Standard library only, so there is nothing to `pip install` |
 | [`gpu-screen-recorder`](https://git.dec05eba.com/gpu-screen-recorder/about/) | everything | The recorder the keys read and control |
-| [`gpu-screen-recorder-ui`](https://git.dec05eba.com/gpu-screen-recorder-ui/about/) | starting replay, record, stream, screenshot | Provides `gsr-ui-cli`. Without it the deck can still save, stop and report on a running recorder |
+| [`gpu-screen-recorder-ui`](https://git.dec05eba.com/gpu-screen-recorder-ui/about/) | starting replay, record, stream, screenshot | Provides `gsr-ui-cli`. The Flathub app (`com.dec05eba.gpu_screen_recorder`) works too: its CLI is run with `flatpak run`. Without it the deck can still save, stop and report on a running recorder |
 
 Tested with `gpu-screen-recorder` 6.1.3 and `gpu-screen-recorder-ui` 1.13.10.
 
@@ -133,13 +133,17 @@ rm -rf ~/.config/opendeck/plugins/systems.garcia.gsr.sdPlugin
 
 **Every key says `gsr-ui not running`.** Starting anything goes through the
 overlay, so `gpu-screen-recorder-ui` has to be installed and running. Check
-that `gsr-ui-cli` is in `/usr/bin` or `~/.local/bin`. The plugin runs with
+that `gsr-ui-cli` is in `/usr/bin` or `~/.local/bin`, or that the Flathub
+app `com.dec05eba.gpu_screen_recorder` is installed. The plugin runs with
 exactly that `PATH`, not your shell's. Save Replay still works without the
 overlay while some recorder is running a replay.
 
 **The keys never change, even when recording.** OpenDeck is probably running
-as a Flatpak. The sandbox stops the plugin from reading other processes in
-`/proc` or signalling them. Use the AppImage or a native package instead.
+as a Flatpak without the `org.freedesktop.Flatpak` permission, so the plugin
+cannot leave the sandbox, which hides other processes in `/proc` and blocks
+signals to them. Grant it back with
+`flatpak override --user --talk-name=org.freedesktop.Flatpak me.amankhanna.opendeck`,
+or use the AppImage or a native package.
 
 **A save length shows a `*`.** The recorder has no IPC socket, so the save
 goes by signal. Signals only support six fixed lengths, so the key shows the
