@@ -5,6 +5,10 @@ Two files matter, both plain "key value" text, one pair per line:
     ~/.config/gpu-screen-recorder/config      written by gpu-screen-recorder-gtk
     ~/.config/gpu-screen-recorder/config_ui   written by gsr-ui, the overlay
 
+The Flathub build keeps the same two files in its own config directory,
+~/.var/app/com.dec05eba.gpu_screen_recorder/config/gpu-screen-recorder/, and
+that is looked in as well.
+
 They are read, never written. The plugin does not own any of these settings --
 the replay length, the save directories, the streaming service are chosen in
 the recorder's own UI -- and a key that showed a different buffer length from
@@ -18,11 +22,18 @@ be 60 seconds if you turned it on".
 import os
 import time
 
-CONFIG_DIR = os.path.join(
-    os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"),
-    "gpu-screen-recorder")
-UI_CONFIG = os.path.join(CONFIG_DIR, "config_ui")
-GTK_CONFIG = os.path.join(CONFIG_DIR, "config")
+FLATPAK_APP = "com.dec05eba.gpu_screen_recorder"
+# A package install first, then the Flathub app, whose sandbox moves
+# XDG_CONFIG_HOME under ~/.var/app.
+CONFIG_DIRS = (
+    os.path.join(
+        os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"),
+        "gpu-screen-recorder"),
+    os.path.join(os.path.expanduser("~/.var/app"), FLATPAK_APP, "config",
+                 "gpu-screen-recorder"),
+)
+UI_CONFIG = "config_ui"
+GTK_CONFIG = "config"
 
 # Re-read at most this often. The files change when someone touches the
 # overlay, which is rare compared to the once-a-second key refresh.
@@ -54,12 +65,32 @@ def _parse(path):
     return values
 
 
-def _load(path):
+def _locate(name):
+    """Where the file called `name` is, or "" if no install has written one.
+
+    With both a package install and the Flathub app on one machine, the file
+    written last is the one in use: a config left behind by the install that
+    was replaced would otherwise win for ever.
+    """
+    newest, newest_at = "", None
+    for directory in CONFIG_DIRS:
+        path = os.path.join(directory, name)
+        try:
+            written_at = os.stat(path).st_mtime
+        except OSError:
+            continue
+        if newest_at is None or written_at > newest_at:
+            newest, newest_at = path, written_at
+    return newest
+
+
+def _load(name):
     now = time.monotonic()
-    if now - _cache_at.get(path, 0.0) >= TTL:
-        _cache[path] = _parse(path)
-        _cache_at[path] = now
-    return _cache[path]
+    if name not in _cache or now - _cache_at.get(name, 0.0) >= TTL:
+        path = _locate(name)
+        _cache[name] = _parse(path) if path else {}
+        _cache_at[name] = now
+    return _cache[name]
 
 
 def ui():

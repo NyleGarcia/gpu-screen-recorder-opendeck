@@ -239,8 +239,9 @@ def open_file(path):
 # -------------------------------------------------------------- gsr-ui-cli
 # The Flathub build of GPU Screen Recorder keeps gsr-ui-cli inside its own
 # sandbox, next to the gsr-ui it talks to, so it is not on any PATH. Run
-# through `flatpak run` it shares the overlay's runtime directory and reaches
-# its socket.
+# through `flatpak run` it gets the same XDG_RUNTIME_DIR, which names the
+# overlay's socket, and the app's shared network namespace, which is where an
+# abstract socket lives.
 FLATPAK_APP = "com.dec05eba.gpu_screen_recorder"
 _FLATPAK_APP_DIRS = (
     "/var/lib/flatpak/app",
