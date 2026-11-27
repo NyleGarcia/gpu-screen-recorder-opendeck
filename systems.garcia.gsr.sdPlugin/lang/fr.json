@@ -1,0 +1,137 @@
+{
+  "Name": "GPU Screen Recorder",
+  "Description": "Suivez le replay, l’enregistrement et la diffusion depuis un Stream Deck, et sauvegardez le replay d’une seule touche.",
+  "systems.garcia.gsr.replay": {
+    "Name": "Replay",
+    "Tooltip": "Indique si le replay tourne, sa durée et son remplissage. Appuyez pour le lancer ou l’arrêter."
+  },
+  "systems.garcia.gsr.save": {
+    "Name": "Sauvegarder le replay",
+    "Tooltip": "Sauvegarde le replay, en entier ou les dernières minutes, et affiche le fichier écrit."
+  },
+  "systems.garcia.gsr.record": {
+    "Name": "Enregistrer",
+    "Tooltip": "Lance et arrête un enregistrement, y compris pendant le replay. Affiche la durée et la taille du fichier."
+  },
+  "systems.garcia.gsr.stream": {
+    "Name": "Diffusion",
+    "Tooltip": "Lance et arrête la diffusion, avec le service utilisé et depuis combien de temps elle est en direct."
+  },
+  "systems.garcia.gsr.screenshot": {
+    "Name": "Capture d’écran",
+    "Tooltip": "Capture l’écran, une région ou une fenêtre, et affiche le fichier écrit."
+  },
+  "systems.garcia.gsr.status": {
+    "Name": "État",
+    "Tooltip": "Affichage en lecture seule : ce qui est capturé, depuis quel écran, avec quelle fréquence d’images, quel codec et quel débit."
+  },
+  "Localization": {
+    "key.off": "OFF",
+    "key.on": "ON",
+    "key.live": "DIRECT",
+    "key.rec": "REC",
+    "key.paused": "PAUSE",
+    "key.saved": "SAUVÉ",
+    "key.saved_file": "sauvegardé",
+    "key.all": "TOUT",
+    "key.press_to_start": "appuyez pour lancer",
+    "key.starting": "lancement…",
+    "key.ui_not_running": "gsr-ui non lancé",
+    "key.replay_off": "replay arrêté",
+
+    "key.replay.title": "Replay",
+    "key.replay.buffer_length": "tampon de {length}",
+    "key.replay.buffer_storage": "tampon · {storage}",
+    "key.replay.filling": "{clock} rempli",
+    "key.replay.up": "actif {clock}",
+
+    "key.save.title": "Sauver",
+    "key.save.subtitle": "le replay",
+    "key.save.unavailable": "Sauvegarde",
+    "key.save.saving": "Écriture…",
+
+    "key.record.title": "Enreg.",
+    "key.record.during_replay": "pendant le replay",
+    "key.record.in_replay": "dans le replay",
+
+    "key.stream.title": "Diffusion",
+    "key.stream.streaming": "en direct",
+
+    "key.screenshot.title": "Capture",
+    "key.area.auto": "plein écran",
+    "key.area.region": "région",
+    "key.area.window": "fenêtre",
+
+    "key.status.idle": "INACTIF",
+    "key.status.replay": "REPLAY",
+    "key.status.nothing": "rien en cours",
+    "key.status.replay_line": "replay {length} · {storage}",
+    "key.status.stream_line": "diffusion {service}",
+    "key.status.ui_up": "gsr-ui lancé",
+    "key.status.ui_down": "gsr-ui arrêté",
+    "key.status.buffer": "tampon {length} · {storage}",
+    "key.status.recording": "enreg. {clock}",
+    "key.status.live": "direct {clock}",
+    "key.status.capture": "{capture} · {fps} i/s",
+    "key.status.unknown": "inconnu",
+    "key.status.audio": "{count} audio · {size} RAM",
+
+    "theme.default": "Par défaut",
+    "theme.amber": "Ambre",
+    "theme.violet": "Violet",
+    "theme.mono": "Monochrome",
+    "theme.contrast": "Contraste élevé",
+    "theme.light": "Clair",
+
+    "pi.colours": "Couleurs",
+    "pi.colours_scope": "— s’applique à toutes les touches",
+    "pi.whole_buffer": "Tout le tampon",
+    "pi.running.not_installed": "non installé",
+    "pi.running.running": "lancé",
+    "pi.running.not_running": "non lancé",
+    "pi.running.recorder": "enregistreur",
+    "pi.running.nothing": "rien en cours",
+    "pi.ui_not_running.start": "gsr-ui n’est pas lancé, cette touche ne peut donc pas lancer le replay. Les enregistreurs déjà en cours peuvent toujours être sauvegardés et arrêtés.",
+    "pi.ui_cli_missing": "gsr-ui-cli est introuvable. Installez gpu-screen-recorder-ui pour lancer et arrêter l’enregistrement depuis le deck.",
+
+    "pi.replay.press": "Appui sur la touche",
+    "pi.replay.press.toggle": "Lance ou arrête le replay",
+    "pi.replay.press.start": "Le lance seulement",
+    "pi.replay.press.stop": "L’arrête seulement",
+    "pi.replay.hint": "La durée du tampon, la qualité et les pistes audio viennent des paramètres de GPU Screen Recorder : cette touche lance ce que l’overlay est configuré pour lancer, donc le deck et l’overlay ne peuvent jamais diverger. Tant que le tampon se remplit, la touche montre son niveau ; une sauvegarde faite avant est plus courte que la durée du tampon.",
+
+    "pi.save.seconds": "Quantité à sauvegarder",
+    "pi.save.hidden": "Les durées plus longues que le tampon du replay ({length}) sont masquées. Allongez le replay dans les paramètres de GPU Screen Recorder pour en sauvegarder plus.",
+    "pi.save.restart": "Vider le tampon après la sauvegarde",
+    "pi.save.hint": "La touche affiche le fichier écrit pendant quelques secondes : c’est le seul signe qu’une sauvegarde a eu lieu, car le tampon continue de tourner et aucune fenêtre ne s’ouvre.",
+    "pi.save.exact": "Cet enregistreur a un socket IPC : n’importe quelle durée est sauvegardée exactement, et la touche connaît le nom du fichier écrit.",
+    "pi.save.signal": "Cet enregistreur a été lancé sans -ipc, la sauvegarde passe donc par un signal : seules les durées 10s, 30s, 1m, 5m, 10m, 30m et le tampon entier existent, toute autre durée est arrondie à la plus proche, et le tampon ne peut pas être vidé à la sauvegarde. La touche marque une durée arrondie d’un *.",
+
+    "pi.record.press": "Appui sur la touche",
+    "pi.record.press.toggle": "Lance ou arrête l’enregistrement",
+    "pi.record.press.pause": "Le met en pause ou le reprend",
+    "pi.record.area": "Quoi enregistrer",
+    "pi.record.area.auto": "Ce que l’overlay a configuré",
+    "pi.area.region": "Une région, choisie à l’appui",
+    "pi.area.window": "Une fenêtre, choisie à l’appui",
+    "pi.record.hint": "Si le replay tourne, cette touche lance un enregistrement à l’intérieur, ce qui laisse le tampon intact : arrêter l’enregistreur lui-même arrêterait aussi le tampon. La touche montre depuis combien de temps l’enregistrement tourne et la taille du fichier ; une taille qui ne grandit plus est un enregistrement qui a échoué sans prévenir.",
+    "pi.record.pause_warn": "L’état de pause ne peut pas être relu depuis l’enregistreur, la touche affiche donc ce qu’elle a demandé en dernier. Une pause faite via un raccourci ou l’overlay laissera la touche dans le mauvais état jusqu’au prochain appui.",
+
+    "pi.stream.hint": "Lance et arrête la diffusion vers le service configuré dans GPU Screen Recorder, affiché sur la touche avec la durée du direct. Il n’y a rien à configurer ici : le service, la clé et le débit sont ceux de l’overlay, et une clé de stream stockée ailleurs avec une autre URL serait un moyen de passer en direct sur le mauvais compte.",
+    "pi.stream.service": "Diffusion vers {service}",
+    "pi.stream.ui_not_running": "gsr-ui n’est pas lancé, cette touche ne peut donc pas lancer de diffusion.",
+
+    "pi.screenshot.area": "Quoi capturer",
+    "pi.screenshot.area.auto": "L’écran",
+    "pi.screenshot.directory": "Les captures sont écrites dans {directory}, et la touche affiche le nom de la dernière pendant quelques secondes.",
+    "pi.screenshot.no_directory": "La touche affiche le nom du fichier écrit pendant quelques secondes.",
+    "pi.screenshot.ui_not_running": "gsr-ui n’est pas lancé, cette touche ne peut donc pas faire de capture.",
+
+    "pi.status.source": "Afficher",
+    "pi.status.source.auto": "Ce qui est en cours",
+    "pi.status.source.replay": "Le replay",
+    "pi.status.source.record": "L’enregistrement",
+    "pi.status.source.stream": "La diffusion",
+    "pi.status.hint": "Un affichage, pas un bouton : appuyer ne fait rien, car il n’existe pas d’action unique sensée pour « l’enregistreur en général », et en deviner une est le meilleur moyen de transformer un coup d’œil au deck en enregistrement arrêté. Elle répond à la question qui obligerait sinon à ouvrir l’overlay en pleine partie : est-ce le bon écran qui est capturé, avec la bonne fréquence d’images et le bon débit ?"
+  }
+}

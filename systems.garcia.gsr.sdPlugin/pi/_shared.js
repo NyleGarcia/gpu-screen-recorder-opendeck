@@ -17,7 +17,30 @@
   let controller = "Keypad";
   let settings = {};
   let answered = false;
+  let strings = {};
   const listeners = [];
+
+  // The words come from the plugin, in OpenDeck's language, with the first
+  // payload: an inspector is a page loaded from disk and cannot read lang/
+  // itself. Until then the English written in the page stands in.
+  function t(key, values) {
+    let text = strings[key];
+    if (text === undefined) return null;
+    for (const [name, value] of Object.entries(values || {})) {
+      text = text.split("{" + name + "}").join(String(value));
+    }
+    return text;
+  }
+
+  function translate(payload) {
+    if (!payload || !payload.strings) return;
+    strings = payload.strings;
+    if (payload.language) document.documentElement.lang = payload.language;
+    for (const node of document.querySelectorAll("[data-i18n]")) {
+      const text = t(node.dataset.i18n);
+      if (text !== null) node.textContent = text;
+    }
+  }
 
   function start(port, _uuid, registerEvent, _info, actionInfo) {
     const info = typeof actionInfo === "string"
@@ -46,6 +69,7 @@
         answered = true;
         report("payload " + JSON.stringify(message.payload || {}).length + "b");
         try {
+          translate(message.payload);
           listeners.forEach((fn) => fn(message.payload || {}));
         } catch (err) {
           report("render threw: " + err);
@@ -79,6 +103,16 @@
 
   window.GSR = {
     report,
+    // The translated string, or `fallback` while none has arrived.
+    t(key, fallback, values) {
+      const text = t(key, values);
+      if (text !== null) return text;
+      let out = fallback;
+      for (const [name, value] of Object.entries(values || {})) {
+        out = out.split("{" + name + "}").join(String(value));
+      }
+      return out;
+    },
     controller: () => controller,
     settings: () => settings,
     onPayload(fn) { listeners.push(fn); },
@@ -116,16 +150,20 @@
       if (!node || !payload) return;
       const rows = [];
       if (!payload.ui_cli) {
-        rows.push(["gsr-ui-cli", "not installed"]);
+        rows.push(["gsr-ui-cli",
+          GSR.t("pi.running.not_installed", "not installed")]);
       } else {
-        rows.push(["gsr-ui", payload.ui ? "running" : "not running"]);
+        rows.push(["gsr-ui", payload.ui
+          ? GSR.t("pi.running.running", "running")
+          : GSR.t("pi.running.not_running", "not running")]);
       }
       for (const inst of payload.running || []) {
         rows.push([inst.mode, (inst.capture || "?")
           + (inst.ipc ? " · ipc" : "")]);
       }
       if (!(payload.running || []).length) {
-        rows.push(["recorder", "nothing running"]);
+        rows.push([GSR.t("pi.running.recorder", "recorder"),
+          GSR.t("pi.running.nothing", "nothing running")]);
       }
       node.innerHTML = rows.map(([term, value]) =>
         "<div><dt>" + term + "</dt><dd>" + value + "</dd></div>").join("");

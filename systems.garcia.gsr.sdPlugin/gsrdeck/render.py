@@ -13,6 +13,8 @@ the host for other panels.
 import base64
 import os
 
+from .i18n import t
+
 SIZE = 144
 
 # One accent per meaning, used for the glyph, the bar and the border alike, so
@@ -78,7 +80,7 @@ def set_theme(name):
 
 
 def theme_choices():
-    return [{"id": key, "label": value["name"]}
+    return [{"id": key, "label": t(f"theme.{key}", default=value["name"])}
             for key, value in THEMES.items()]
 
 
@@ -306,15 +308,15 @@ def replay_key(on, seconds, fill=0.0, age=0.0, storage="ram",
     permanently full bar is one more thing on the key that never changes.
     """
     if unavailable:
-        return unavailable_key("replay", "Replay",
-                               note or "gsr-ui is not running")
+        return unavailable_key("replay", t("key.replay.title"),
+                               note or t("key.ui_not_running"))
     if not on:
         body = (
             _glyph("replay", THEME["idle"], 11, 11, 1.3, slashed=True)
-            + _corner("OFF", THEME["idle"], size=19, weight="bold")
-            + _text_block(["Replay"], 88, 24, THEME["text"])
-            + _text_block([f"{duration(seconds)} buffer" if seconds
-                           else "press to start"], 116, 14, THEME["dim"],
+            + _corner(t("key.off"), THEME["idle"], size=19, weight="bold")
+            + _text_block([t("key.replay.title")], 88, 24, THEME["text"])
+            + _text_block([t("key.replay.buffer_length", length=duration(seconds))
+                           if seconds else t("key.press_to_start")], 116, 14, THEME["dim"],
                           weight="400")
         )
         return _document(body, THEME["idle"])
@@ -323,17 +325,17 @@ def replay_key(on, seconds, fill=0.0, age=0.0, storage="ram",
     filling = fill < 0.999
     body = (
         _glyph("replay", accent, 11, 11, 1.3)
-        + _corner("ON", accent, size=19, weight="bold")
+        + _corner(t("key.on"), accent, size=19, weight="bold")
         + _text_block([duration(seconds)], 84, 30, THEME["text"])
-        + _text_block([f"buffer · {storage.upper()}"], 108, 13, THEME["dim"],
+        + _text_block([t("key.replay.buffer_storage", storage=storage.upper())], 108, 13, THEME["dim"],
                       weight="400")
     )
     if filling:
         body += _bar(fill, accent, 120, height=7)
-        body += _text_block([f"{clock(age)} in"], 137, 11, THEME["dim"],
+        body += _text_block([t("key.replay.filling", clock=clock(age))], 137, 11, THEME["dim"],
                             weight="400")
     else:
-        body += _text_block([f"up {clock(age)}"], 130, 13, THEME["dim"],
+        body += _text_block([t("key.replay.up", clock=clock(age))], 130, 13, THEME["dim"],
                             weight="400")
     return _document(body, accent)
 
@@ -350,7 +352,7 @@ def save_key(length_label, ready, flash="", pending=False, note=""):
         body = (
             _glyph("save", accent, 11, 11, 1.3)
             + _corner(length_label, THEME["dim"])
-            + _text_block(["Saving…"], 88, 23, THEME["text"])
+            + _text_block([t("key.save.saving")], 88, 23, THEME["text"])
             + _bar(1.0, accent, 112, height=7)
         )
         return _document(body, accent)
@@ -358,21 +360,21 @@ def save_key(length_label, ready, flash="", pending=False, note=""):
         accent = THEME["good"]
         body = (
             _glyph("save", accent, 11, 11, 1.3)
-            + _corner("SAVED", accent, weight="bold")
-            + _text_block(file_label(flash) or ["saved"], 90, 16,
+            + _corner(t("key.saved"), accent, weight="bold")
+            + _text_block(file_label(flash) or [t("key.saved_file")], 90, 16,
                           THEME["text"])
             + _text_block(["✓"], 126, 20, accent)
         )
         return _document(body, accent)
     if not ready:
-        return unavailable_key("save", "Save replay",
-                               note or "replay is off")
+        return unavailable_key("save", t("key.save.unavailable"),
+                               note or t("key.replay_off"))
     accent = THEME["live"]
     body = (
         _glyph("save", accent, 11, 11, 1.3)
         + _corner(length_label, accent, weight="bold")
-        + _text_block(["Save"], 90, 26, THEME["text"])
-        + _text_block(["replay"], 116, 15, THEME["dim"], weight="400")
+        + _text_block([t("key.save.title")], 90, 26, THEME["text"])
+        + _text_block([t("key.save.subtitle")], 116, 15, THEME["dim"], weight="400")
     )
     return _document(body, accent)
 
@@ -386,14 +388,15 @@ def record_key(active, elapsed=0.0, byte_count=0, paused=False,
     only place that shows.
     """
     if unavailable:
-        return unavailable_key("record", "Record",
-                               note or "gsr-ui is not running")
+        return unavailable_key("record", t("key.record.title"),
+                               note or t("key.ui_not_running"))
     if not active:
         body = (
             _glyph("record", THEME["idle"], 11, 11, 1.3)
-            + _corner("OFF", THEME["idle"], size=19, weight="bold")
-            + _text_block(["Record"], 90, 24, THEME["text"])
-            + _text_block(["during replay" if in_replay else "press to start"],
+            + _corner(t("key.off"), THEME["idle"], size=19, weight="bold")
+            + _text_block([t("key.record.title")], 90, 24, THEME["text"])
+            + _text_block([t("key.record.during_replay") if in_replay
+                           else t("key.press_to_start")],
                           118, 13, THEME["dim"], weight="400")
         )
         return _document(body, THEME["idle"])
@@ -401,12 +404,12 @@ def record_key(active, elapsed=0.0, byte_count=0, paused=False,
     accent = THEME["live"] if paused else THEME["hot"]
     body = (
         _glyph("pause" if paused else "record", accent, 11, 11, 1.3)
-        + _corner("PAUSED" if paused else "REC", accent, size=17,
+        + _corner(t("key.paused") if paused else t("key.rec"), accent, size=17,
                   weight="bold")
         + _text_block([clock(elapsed)], 86, 29, THEME["text"])
-        + _text_block([size(byte_count) if byte_count else "starting…"],
+        + _text_block([size(byte_count) if byte_count else t("key.starting")],
                       112, 15, THEME["dim"], weight="400")
-        + (_text_block(["in replay"], 132, 12, THEME["dim"], weight="400")
+        + (_text_block([t("key.record.in_replay")], 132, 12, THEME["dim"], weight="400")
            if in_replay else "")
     )
     return _document(body, accent)
@@ -415,22 +418,22 @@ def record_key(active, elapsed=0.0, byte_count=0, paused=False,
 def stream_key(live, service="", elapsed=0.0, unavailable=False, note=""):
     """The streaming key. The service is where it goes, not what it is."""
     if unavailable:
-        return unavailable_key("stream", "Stream",
-                               note or "gsr-ui is not running")
+        return unavailable_key("stream", t("key.stream.title"),
+                               note or t("key.ui_not_running"))
     if not live:
         body = (
             _glyph("stream", THEME["idle"], 11, 11, 1.3, slashed=True)
-            + _corner("OFF", THEME["idle"], size=19, weight="bold")
-            + _text_block(["Stream"], 90, 24, THEME["text"])
-            + _text_block([_fit(service or "press to start", 16)], 118, 13,
+            + _corner(t("key.off"), THEME["idle"], size=19, weight="bold")
+            + _text_block([t("key.stream.title")], 90, 24, THEME["text"])
+            + _text_block([_fit(service or t("key.press_to_start"), 20)], 118, 13,
                           THEME["dim"], weight="400")
         )
         return _document(body, THEME["idle"])
     accent = THEME["hot"]
     body = (
         _glyph("stream", accent, 11, 11, 1.3)
-        + _corner("LIVE", accent, size=18, weight="bold")
-        + _text_block([_fit(service or "streaming", 11)], 88, 22,
+        + _corner(t("key.live"), accent, size=18, weight="bold")
+        + _text_block([_fit(service or t("key.stream.streaming"), 11)], 88, 22,
                       THEME["text"])
         + _text_block([clock(elapsed)], 118, 18, THEME["dim"], weight="400")
     )
@@ -440,32 +443,33 @@ def stream_key(live, service="", elapsed=0.0, unavailable=False, note=""):
 def screenshot_key(mode_label, flash="", unavailable=False, note=""):
     """The screenshot key: which area it takes, and what it just wrote."""
     if unavailable:
-        return unavailable_key("camera", "Screenshot",
-                               note or "gsr-ui is not running")
+        return unavailable_key("camera", t("key.screenshot.title"),
+                               note or t("key.ui_not_running"))
     if flash:
         accent = THEME["good"]
         return _document(
             _glyph("camera", accent, 11, 11, 1.3)
-            + _corner("SAVED", accent, weight="bold")
+            + _corner(t("key.saved"), accent, weight="bold")
             + _text_block(file_label(flash), 92, 16, THEME["text"])
             + _text_block(["✓"], 128, 20, accent),
             accent)
     accent = THEME["live"]
     body = (
         _glyph("camera", accent, 11, 11, 1.3)
-        + _text_block(["Screenshot"], 92, 20, THEME["text"])
+        + _text_block([t("key.screenshot.title")], 92, 20, THEME["text"])
         + _text_block([mode_label], 118, 14, THEME["dim"], weight="400")
     )
     return _document(body, accent)
 
 
-def status_key(lines, headline="Idle", accent_name="idle"):
+def status_key(lines, headline="", accent_name="idle"):
     """A read-only key: what the recorder is, in four short lines.
 
     Deliberately dense and deliberately not pressable. It exists so a glance
     at the deck answers "is it even capturing the right monitor", which is
     the question that otherwise means opening the overlay mid-game.
     """
+    headline = headline or t("key.status.idle")
     accent = THEME.get(accent_name, THEME["idle"])
     body = _glyph("status", accent, 11, 9, 1.15)
     body += _corner(_fit(headline, 8), accent, y=32, size=17, weight="bold")

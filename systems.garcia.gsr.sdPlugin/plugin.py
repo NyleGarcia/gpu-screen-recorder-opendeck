@@ -34,7 +34,8 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from gsrdeck import config, control, render, state   # noqa: E402
+from gsrdeck import config, control, i18n, render, state   # noqa: E402
+from gsrdeck.i18n import t                           # noqa: E402
 from gsrdeck.ws import WebSocket                     # noqa: E402
 
 LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -79,7 +80,7 @@ AREA_COMMANDS = {
                    "region": "take-screenshot-region",
                    "window": "take-screenshot-window"},
 }
-AREA_LABELS = {"auto": "full screen", "region": "region", "window": "window"}
+AREAS = ("auto", "region", "window")
 
 # gpu-screen-recorder names what it writes after the moment it started, which
 # is the only record of when a recording began that survives this plugin being
@@ -104,7 +105,7 @@ def length_label(seconds, exact=True):
     the resulting clip is a bad way to find it out.
     """
     if not seconds:
-        return "ALL"
+        return t("key.all")
     label = render.duration(seconds)
     return label if exact else label + "*"
 
@@ -122,6 +123,19 @@ def file_started_at(path):
     except (ValueError, OverflowError):
         return None
     return stamp
+
+
+def opendeck_language(info):
+    """The language OpenDeck is set to, from the -info it starts plugins with.
+
+    The system locale is the fallback, for a host that leaves it out.
+    """
+    try:
+        language = (json.loads(info or "{}").get("application")
+                    or {}).get("language")
+    except (ValueError, AttributeError):
+        language = None
+    return language or os.environ.get("LC_ALL") or os.environ.get("LANG")
 
 
 class Plugin:
@@ -246,12 +260,12 @@ class Plugin:
         if inst is None:
             if time.monotonic() < busy_until:
                 self._paint(context, render.replay_key(
-                    False, config.replay_seconds(), note="starting…"))
+                    False, config.replay_seconds(), note=t("key.starting")))
                 return
             if not control.ui_running():
                 self._paint(context, render.replay_key(
                     False, 0, unavailable=True,
-                    note="gsr-ui not running"))
+                    note=t("key.ui_not_running")))
                 return
             self._paint(context, render.replay_key(
                 False, config.replay_seconds()))
@@ -271,7 +285,7 @@ class Plugin:
             inst is not None,
             flash=self._flash_path(context),
             pending=context in self._pending,
-            note="replay is off"))
+            note=t("key.replay_off")))
 
     def _render_record(self, context, settings, busy_until):
         inst, recording = self._recording()
@@ -285,11 +299,11 @@ class Plugin:
         if time.monotonic() < busy_until:
             self._paint(context, render.record_key(
                 False, in_replay=bool(host and host["mode"] != "record"),
-                note="starting…"))
+                note=t("key.starting")))
             return
         if host is None and not control.ui_running():
             self._paint(context, render.record_key(
-                False, unavailable=True, note="gsr-ui not running"))
+                False, unavailable=True, note=t("key.ui_not_running")))
             return
         self._paint(context, render.record_key(
             False, in_replay=bool(host and host["mode"] != "record")))
@@ -302,11 +316,11 @@ class Plugin:
             return
         if time.monotonic() < busy_until:
             self._paint(context, render.stream_key(
-                False, "starting…"))
+                False, t("key.starting")))
             return
         if not control.ui_running():
             self._paint(context, render.stream_key(
-                False, unavailable=True, note="gsr-ui not running"))
+                False, unavailable=True, note=t("key.ui_not_running")))
             return
         self._paint(context, render.stream_key(False, config.stream_service()))
 
@@ -314,10 +328,10 @@ class Plugin:
         area = settings.get("area", "auto")
         if not control.ui_running():
             self._paint(context, render.screenshot_key(
-                "", unavailable=True, note="gsr-ui not running"))
+                "", unavailable=True, note=t("key.ui_not_running")))
             return
         self._paint(context, render.screenshot_key(
-            AREA_LABELS.get(area, "full screen"),
+            t(f"key.area.{area if area in AREAS else 'auto'}"),
             flash=self._flash_path(context)))
 
     def _render_status(self, context, settings):
@@ -329,37 +343,46 @@ class Plugin:
         else:
             inst = state.pick(instances, wanted)
         if inst is None:
-            lines = ["nothing is recording"]
+            lines = [t("key.status.nothing")]
             if config.replay_seconds():
-                lines.append(f"replay {render.duration(config.replay_seconds())}"
-                             f" · {config.replay_storage()}")
+                lines.append(t("key.status.replay_line",
+                               length=render.duration(config.replay_seconds()),
+                               storage=config.replay_storage()))
             if config.stream_service():
-                lines.append(f"stream {config.stream_service()}")
-            lines.append("gsr-ui up" if control.ui_running()
-                         else "gsr-ui down")
-            self._paint(context, render.status_key(lines, "IDLE", "idle"))
+                lines.append(t("key.status.stream_line",
+                               service=config.stream_service()))
+            lines.append(t("key.status.ui_up") if control.ui_running()
+                         else t("key.status.ui_down"))
+            self._paint(context, render.status_key(
+                lines, t("key.status.idle"), "idle"))
             return
 
-        headline = {"replay": "REPLAY", "record": "REC",
-                    "stream": "LIVE"}.get(inst["mode"], "ON")
+        headline = {"replay": t("key.status.replay"), "record": t("key.rec"),
+                    "stream": t("key.live")}.get(inst["mode"], t("key.on"))
         accent = {"replay": "good", "record": "hot",
                   "stream": "hot"}.get(inst["mode"], "live")
         first = {
-            "replay": lambda: f"{render.duration(inst['replay_seconds'])} "
-                              f"buffer · {inst['replay_storage']}",
-            "record": lambda: f"recording {render.clock(inst['age'])}",
-            "stream": lambda: f"live {render.clock(inst['age'])}",
+            "replay": lambda: t(
+                "key.status.buffer",
+                length=render.duration(inst["replay_seconds"]),
+                storage=inst["replay_storage"]),
+            "record": lambda: t("key.status.recording",
+                                clock=render.clock(inst["age"])),
+            "stream": lambda: t("key.status.live",
+                                clock=render.clock(inst["age"])),
         }[inst["mode"]]()
         quality = inst["options"].get("-q", "")
         if inst["bitrate"]:
             quality = f"{inst['bitrate'] / 1000:.0f} Mbps"
         lines = [
             first,
-            f"{inst['capture'] or 'unknown'} · {inst['fps'] or '?'} fps",
+            t("key.status.capture",
+              capture=inst["capture"] or t("key.status.unknown"),
+              fps=inst["fps"] or "?"),
             f"{inst['codec']}"
             + (f" · {quality}" if quality else ""),
-            f"{len(inst['audio'])} audio · "
-            f"{render.size(inst['rss_kb'] * 1024)} RAM",
+            t("key.status.audio", count=len(inst["audio"]),
+              size=render.size(inst["rss_kb"] * 1024)),
         ]
         self._paint(context, render.status_key(lines, headline, accent))
 
@@ -508,6 +531,8 @@ class Plugin:
         instances = self._scan(force=True)
         replay = state.pick(instances, "replay")
         payload = {
+            "language": i18n.language(),
+            "strings": i18n.table("pi."),
             "themes": render.theme_choices(),
             "theme": self._theme,
             "ui": control.ui_running(),
@@ -525,12 +550,13 @@ class Plugin:
                                     and control.socket_alive(replay["ipc"]))
             payload["lengths"] = [
                 {"value": seconds,
-                 "label": "Whole buffer" if not seconds
+                 "label": t("pi.whole_buffer") if not seconds
                           else render.duration(seconds)}
                 for seconds in SAVE_LENGTHS
             ]
             payload["buffer"] = (replay["replay_seconds"] if replay
                                  else config.replay_seconds())
+            payload["buffer_label"] = render.duration(payload["buffer"] or 0)
         if action in (REPLAY, STATUS):
             payload["buffer"] = (replay["replay_seconds"] if replay
                                  else config.replay_seconds())
@@ -653,6 +679,8 @@ def main():
     if not port or not uuid:
         log.error("missing -port/-pluginUUID; got %s", argv)
         return 1
+    log.info("language: %s", i18n.set_language(
+        opendeck_language(args.get("info"))))
     try:
         Plugin(int(port), uuid, register_event).run()
     except Exception:                              # noqa: BLE001

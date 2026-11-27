@@ -8,18 +8,19 @@
 <script src="_shared.js"></script>
 </head>
 <body>
-  <label for="area">What to capture</label>
+  <label for="area" data-i18n="pi.screenshot.area">What to capture</label>
   <select id="area">
-    <option value="auto">The screen</option>
-    <option value="region">A region, picked when the key is pressed</option>
-    <option value="window">A window, picked when the key is pressed</option>
+    <option value="auto" data-i18n="pi.screenshot.area.auto">The screen</option>
+    <option value="region" data-i18n="pi.area.region">A region, picked when the key is pressed</option>
+    <option value="window" data-i18n="pi.area.window">A window, picked when the key is pressed</option>
   </select>
   <p class="hint" id="directory"></p>
   <p class="warn" id="warn" hidden></p>
   <dl class="state" id="running"></dl>
   <div style="margin-top:16px;border-top:1px solid #343a42;padding-top:14px">
-    <label for="theme">Colours <span style="font-weight:400;color:#8b929b">
-      — applies to every key</span></label>
+    <label for="theme"><span data-i18n="pi.colours">Colours</span>
+      <span style="font-weight:400;color:#8b929b"
+        data-i18n="pi.colours_scope">— applies to every key</span></label>
     <select id="theme"></select>
   </div>
 <script>
@@ -32,12 +33,14 @@ GSR.onPayload((payload) => {
   GSR.running(payload);
   area.value = GSR.settings().area || "auto";
   directory.textContent = payload.directory
-    ? "Screenshots are written to " + payload.directory
-      + ", and the key shows the name of the last one for a few seconds."
-    : "The key shows the name of the file it wrote for a few seconds.";
+    ? GSR.t("pi.screenshot.directory", "Screenshots are written to"
+      + " {directory}, and the key shows the name of the last one for a few"
+      + " seconds.", { directory: payload.directory })
+    : GSR.t("pi.screenshot.no_directory", "The key shows the name of the"
+      + " file it wrote for a few seconds.");
   warn.hidden = payload.ui;
-  warn.textContent = "gsr-ui is not running, so this key cannot take a"
-    + " screenshot.";
+  warn.textContent = GSR.t("pi.screenshot.ui_not_running", "gsr-ui is not"
+    + " running, so this key cannot take a screenshot.");
 });
 area.onchange = () => GSR.save({ area: area.value });
 GSR.report("screenshot inspector loaded");

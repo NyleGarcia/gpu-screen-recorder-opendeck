@@ -35,6 +35,7 @@ install:
 	cp -r $(PLUGIN) $(PLUGINS_DIR)/$(PLUGIN)
 	find $(PLUGINS_DIR)/$(PLUGIN) -name __pycache__ -type d -exec rm -rf {} +
 	rm -f $(PLUGINS_DIR)/$(PLUGIN)/plugin.log
+	cp $(PLUGIN)/lang/*.json $(PLUGINS_DIR)/$(PLUGIN)/
 	@echo "installed; restart OpenDeck"
 
 clean:

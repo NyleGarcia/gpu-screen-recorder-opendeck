@@ -166,6 +166,24 @@ The tests fabricate a `/proc` tree and stand up a real unix socket speaking the
 real IPC protocol, so the whole suite runs with no deck, no GPU and no
 recorder.
 
+## Translations
+
+The keys, the property inspectors and the action list follow OpenDeck's
+language (Settings → Language), and fall back to English for a language with
+no file. English and French are included.
+
+Each language is one file in `systems.garcia.gsr.sdPlugin/lang/`, named by its
+code (`en.json`, `fr.json`). The file is in the layout OpenDeck reads for a
+plugin's translations: the plugin's and each action's `Name` and `Tooltip` at
+the top level, and every string the plugin draws under `Localization`.
+`make install` and the release zip copy the files next to `manifest.json`,
+where OpenDeck looks for them.
+
+To add a language, copy `en.json` to `<code>.json`, translate the values and
+keep the keys and `{placeholders}` as they are. `make check` reports missing
+keys and mismatched placeholders, and `make install` lets you check on a deck
+that the text fits on the keys.
+
 ## Layout
 
 ```
@@ -178,8 +196,10 @@ systems.garcia.gsr.sdPlugin/
     control.py       the three ways to drive it
     config.py        GPU Screen Recorder's own settings, read-only
     render.py        the key art
+    i18n.py          picks a language and looks its strings up
     ws.py            a minimal RFC 6455 client
   pi/                property inspectors
+  lang/              one translation file per language
 ```
 
 ## License

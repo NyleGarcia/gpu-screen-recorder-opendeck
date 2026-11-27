@@ -8,11 +8,12 @@
 <script src="_shared.js"></script>
 </head>
 <body>
-  <label for="seconds">How much to save</label>
-  <select id="seconds"><option value="0">Whole buffer</option></select>
+  <label for="seconds" data-i18n="pi.save.seconds">How much to save</label>
+  <select id="seconds"><option value="0" data-i18n="pi.whole_buffer">Whole buffer</option></select>
+  <p class="hint" id="hidden" hidden></p>
   <label class="check"><input type="checkbox" id="restart" />
-    Clear the buffer after saving</label>
-  <p class="hint">
+    <span data-i18n="pi.save.restart">Clear the buffer after saving</span></label>
+  <p class="hint" data-i18n="pi.save.hint">
     The key shows the file it wrote for a few seconds afterwards, which is the
     only sign a save happened — the buffer keeps running and no window opens.
   </p>
@@ -20,8 +21,9 @@
   <p class="ok" id="ok" hidden></p>
   <dl class="state" id="running"></dl>
   <div style="margin-top:16px;border-top:1px solid #343a42;padding-top:14px">
-    <label for="theme">Colours <span style="font-weight:400;color:#8b929b">
-      — applies to every key</span></label>
+    <label for="theme"><span data-i18n="pi.colours">Colours</span>
+      <span style="font-weight:400;color:#8b929b"
+        data-i18n="pi.colours_scope">— applies to every key</span></label>
     <select id="theme"></select>
   </div>
 <script>
@@ -29,6 +31,7 @@ const seconds = document.getElementById("seconds");
 const restart = document.getElementById("restart");
 const warn = document.getElementById("warn");
 const ok = document.getElementById("ok");
+const hidden = document.getElementById("hidden");
 
 GSR.onPayload((payload) => {
   if (!payload) return;
@@ -37,24 +40,34 @@ GSR.onPayload((payload) => {
   const chosen = String(GSR.settings().seconds || 0);
   if (payload.lengths) {
     seconds.innerHTML = "";
+    // A save cannot hold more than the buffer does, so longer lengths are
+    // left out -- and said so, or a 1m buffer reads as a 1m limit.
+    let skipped = 0;
     for (const length of payload.lengths) {
-      if (payload.buffer && length.value > payload.buffer) continue;
+      if (payload.buffer && length.value > payload.buffer) { skipped++; continue; }
       const option = new Option(length.label, String(length.value));
       if (String(length.value) === chosen) option.selected = true;
       seconds.appendChild(option);
     }
+    hidden.hidden = !skipped;
+    hidden.textContent = GSR.t("pi.save.hidden", "Lengths longer than the"
+      + " replay buffer ({length}) are hidden. Make the replay longer in GPU"
+      + " Screen Recorder's settings to save more.",
+      { length: payload.buffer_label || "" });
   }
   restart.checked = !!GSR.settings().restart;
   // Without a socket the length is a signal, and there are only six of them.
   restart.disabled = !payload.exact;
   ok.hidden = !payload.exact;
-  ok.textContent = "This recorder has an IPC socket: any length saves exactly,"
-    + " and the key knows the name of the file it wrote.";
+  ok.textContent = GSR.t("pi.save.exact", "This recorder has an IPC socket:"
+    + " any length saves exactly, and the key knows the name of the file it"
+    + " wrote.");
   warn.hidden = payload.exact;
-  warn.textContent = "This recorder was started without -ipc, so a save is"
-    + " sent as a signal: only 10s, 30s, 1m, 5m, 10m, 30m and the whole"
-    + " buffer exist, anything else is rounded to the nearest, and the buffer"
-    + " cannot be cleared on save. The key marks a rounded length with *.";
+  warn.textContent = GSR.t("pi.save.signal", "This recorder was started"
+    + " without -ipc, so a save is sent as a signal: only 10s, 30s, 1m, 5m,"
+    + " 10m, 30m and the whole buffer exist, anything else is rounded to the"
+    + " nearest, and the buffer cannot be cleared on save. The key marks a"
+    + " rounded length with *.");
 });
 
 seconds.onchange = () => GSR.save({ seconds: Number(seconds.value) });
