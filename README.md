@@ -179,10 +179,45 @@ the top level, and every string the plugin draws under `Localization`.
 `make install` and the release zip copy the files next to `manifest.json`,
 where OpenDeck looks for them.
 
-To add a language, copy `en.json` to `<code>.json`, translate the values and
-keep the keys and `{placeholders}` as they are. `make check` reports missing
-keys and mismatched placeholders, and `make install` lets you check on a deck
-that the text fits on the keys.
+### Adding a language
+
+1. Find the code OpenDeck uses for the language (`de`, `es`, `pt_BR`, ...).
+   A region with no file of its own uses its base language, so `fr_FR` picks
+   `fr.json`.
+2. Copy the English file, which is the reference every other language is
+   checked against:
+
+   ```sh
+   cd systems.garcia.gsr.sdPlugin/lang
+   cp en.json de.json
+   ```
+
+3. Translate the values and leave every key as it is:
+   - `Name` and `Description` at the top, and the `Name` and `Tooltip` of each
+     `systems.garcia.gsr.*` action, are what OpenDeck shows in its action
+     list.
+   - `Localization` holds everything the plugin draws. `key.*` is the text on
+     the keys, `pi.*` the property inspectors and `theme.*` the theme names.
+   - Keep `{placeholders}` such as `{length}` or `{clock}` spelled exactly as
+     in English. They may move within the sentence.
+   - Keys are 144 px wide. Keep `key.*` strings about as short as the English
+     ones; corner labels (`key.off`, `key.rec`, `key.saved`) have the least
+     room.
+4. Run `make check`. It fails on a missing or extra key, a placeholder that
+   differs from `en.json`, an action without a `Name` and `Tooltip`, and
+   invalid JSON.
+5. Run `make install`, restart OpenDeck, set its language (Settings →
+   Language) and look at every key state on a deck. `plugin.log` has a
+   `language: <code>` line that says which file was picked.
+6. Open a pull request with the new `lang/<code>.json`. No code needs to
+   change: the plugin lists `lang/` at startup.
+
+To fix a string in an existing language, edit its file and run `make check`.
+To add a new string to the plugin, add the key to `en.json` and to every other
+language file, then use it with `t("key.name")` in Python, `data-i18n="pi.name"`
+in an inspector's HTML or `GSR.t("pi.name", "English fallback")` in its script.
+A key missing from a language shows the English text, and a key missing from
+English shows the key itself.
 
 ## Layout
 
@@ -201,6 +236,15 @@ systems.garcia.gsr.sdPlugin/
   pi/                property inspectors
   lang/              one translation file per language
 ```
+
+## Credits
+
+- [MrBretze](https://github.com/MrBretze) built the translation system and the
+  French translation
+  ([#3](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/pull/3)),
+  and added support for OpenDeck and GPU Screen Recorder installed from
+  Flathub
+  ([#2](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/pull/2)).
 
 ## License
 
