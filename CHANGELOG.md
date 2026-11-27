@@ -1,3 +1,17 @@
+# [2.1.0](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/compare/v2.0.0...v2.1.0) (2026-11-27)
+
+
+### Bug Fixes
+
+* read GPU Screen Recorder's config from the Flathub app too ([2e81bff](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/commit/2e81bff1ca4a5762216914e0f5f6b5f33119976b))
+* support OpenDeck and GPU Screen Recorder installed from Flathub ([88bdfbb](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/commit/88bdfbb422f0dfa08d6d29922cd60961b08440d4)), closes [#1](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/issues/1)
+
+
+### Features
+
+* Save Section action and Stream Deck+ dial support ([ef9a828](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/commit/ef9a82804df42bedb02b16789dca4dad07a6dabc))
+* translate the plugin, with English and French ([7e73b24](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/commit/7e73b24560695b1a769f9ded096d7f22da006364))
+
 # [2.0.0](https://github.com/NyleGarcia/gpu-screen-recorder-opendeck/compare/v1.0.1...v2.0.0) (2026-10-12)
 
 
