@@ -25,6 +25,10 @@
     "Name": "Status",
     "Tooltip": "A read-only readout: what is capturing, from which monitor, at what frame rate, codec and bitrate."
   },
+  "systems.garcia.gsr.section": {
+    "Name": "Save Section",
+    "Tooltip": "Press to mark a start, press again to save the replay from the mark to now. On a dial, turn to move the mark."
+  },
   "Localization": {
     "key.off": "OFF",
     "key.on": "ON",
@@ -75,6 +79,30 @@
     "key.status.capture": "{capture} · {fps} fps",
     "key.status.unknown": "unknown",
     "key.status.audio": "{count} audio · {size} RAM",
+
+    "key.mark": "MARK",
+    "key.section.title": "Section",
+    "key.section.unavailable": "Save section",
+    "key.section.press_to_mark": "press to mark",
+    "key.section.press_to_save": "press to save",
+    "key.section.buffer_limit": "buffer limit",
+
+    "strip.save": "Save",
+    "strip.saving": "Saving",
+    "strip.saved": "Saved",
+    "strip.save_last": "Save last",
+    "strip.save.hint": "turn to change · press to save",
+    "strip.buffer": "buffer",
+    "strip.in_replay": "in replay",
+    "strip.browse.hint": "{ago} ago · tap to open",
+    "strip.replay.saved_ago": "saved {ago} ago",
+    "strip.replay.no_saves": "no saves yet",
+    "strip.replay.hint": "up {clock} · {since}",
+    "strip.section.no_mark": "no mark",
+    "strip.section.mark_hint": "press, or turn left, to mark",
+    "strip.section.save_hint": "press to save · tap to cancel",
+    "strip.record.pause": "turn left to pause",
+    "strip.record.resume": "turn right to resume",
 
     "theme.default": "Default",
     "theme.amber": "Amber",
@@ -132,6 +160,17 @@
     "pi.status.source.replay": "The replay buffer",
     "pi.status.source.record": "The recording",
     "pi.status.source.stream": "The stream",
-    "pi.status.hint": "A readout, not a button: pressing it does nothing, because there is no sensible single action for \"the recorder in general\" and guessing one is how a glance at the deck turns into a stopped recording. It answers the question that otherwise means opening the overlay mid-game — whether the right monitor is being captured, at the right frame rate and bitrate."
+    "pi.status.hint": "A readout, not a button: pressing it does nothing, because there is no sensible single action for \"the recorder in general\" and guessing one is how a glance at the deck turns into a stopped recording. It answers the question that otherwise means opening the overlay mid-game — whether the right monitor is being captured, at the right frame rate and bitrate.",
+
+    "pi.replay.dial": "On a dial, turning steps through recent saves, newest first; tap the strip to open the one shown. Pressing the dial does what the key would.",
+    "pi.save.dial": "On a dial, turning changes this length and keeps it; pressing the dial or tapping the strip saves.",
+    "pi.save.dial_length": "{seconds}s (set by the dial)",
+    "pi.record.dial": "On a dial, pressing always starts or stops; turn left to pause and right to resume, so the press setting above applies to keys only.",
+
+    "pi.section.step": "One dial detent moves the mark",
+    "pi.section.hint": "Press once to drop a mark; the key counts up from it. Press again to save the replay from the mark to now. On a dial, turn left to move the mark further back, right to bring it closer — turning left with no mark drops one in the past — and tap the strip to throw the mark away.",
+    "pi.section.limit": "A section can reach back no further than the buffer holds. Past that the key says \"buffer limit\" and the save is the whole buffer.",
+    "pi.section.exact": "This recorder has an IPC socket: the section saves to the second.",
+    "pi.section.signal": "This recorder was started without -ipc, so a save is sent as a signal and only 10s, 30s, 1m, 5m, 10m, 30m and the whole buffer exist. A section is rounded UP to the next of those, so the mark is always inside the clip; the key marks a rounded length with *."
   }
 }

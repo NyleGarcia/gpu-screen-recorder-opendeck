@@ -44,10 +44,48 @@ class DocumentTests(unittest.TestCase):
             "stream off": render.stream_key(False, "twitch"),
             "screenshot": render.screenshot_key("region"),
             "status": render.status_key(["a", "b", "c", "d"], "REC", "hot"),
+            "section": render.section_key(False),
+            "section marked": render.section_key(True, 42, "1m*"),
+            "section off": render.section_key(False, ready=False),
         }.items():
             with self.subTest(name):
                 root = ElementTree.fromstring(svg)
                 self.assertEqual(root.get("width"), str(render.SIZE))
+
+    def test_every_strip_is_parseable_svg_at_the_strip_size(self):
+        clip = "/v/Replay_2026-09-07_12-00-00.mp4"
+        for name, svg in {
+            "replay on": render.replay_strip(True, 60, 0.5, 30,
+                                             last_save=90),
+            "replay full": render.replay_strip(True, 60, 1.0, 900),
+            "replay off": render.replay_strip(False, 60),
+            "replay unavailable": render.replay_strip(False, 0,
+                                                      unavailable=True),
+            "replay browsing": render.replay_strip(
+                True, 60, browse=(clip, 125, 2 << 20, 0, 4)),
+            "save": render.save_strip("30s", True, 0.5),
+            "save pending": render.save_strip("30s", True, pending=True),
+            "save flash": render.save_strip("30s", True, flash=clip),
+            "save off": render.save_strip("ALL", False),
+            "section": render.section_strip(False),
+            "section marked": render.section_strip(True, 42, "1m*", 0.7),
+            "section capped": render.section_strip(True, 90, "ALL", 1.0,
+                                                   capped=True),
+            "record": render.record_strip(True, 61, 1024),
+            "record paused": render.record_strip(True, 61, 1024,
+                                                 paused=True),
+            "record off": render.record_strip(False),
+        }.items():
+            with self.subTest(name):
+                root = ElementTree.fromstring(svg)
+                self.assertEqual(root.get("width"), str(render.STRIP_W))
+                self.assertEqual(root.get("height"), str(render.STRIP_H))
+
+    def test_a_browsed_save_names_the_file_and_its_place(self):
+        svg = render.replay_strip(True, 60, browse=(
+            "/v/Replay_2026-09-07_12-00-00.mp4", 125, 0, 1, 4))
+        self.assertIn("2/4", svg)
+        self.assertIn("12:00:00", svg)
 
     def test_a_name_with_markup_in_it_cannot_break_the_document(self):
         svg = render.stream_key(True, "a<b>&c", 10)

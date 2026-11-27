@@ -154,6 +154,19 @@ def snap_seconds(seconds):
     return min(PRESETS, key=lambda preset: abs(preset - seconds))
 
 
+def cover_seconds(seconds):
+    """The shortest signalled save that still holds `seconds` of video.
+
+    A section is saved from a mark, so rounding to the nearest preset can cut
+    off the moment the mark was dropped for. Rounding up never does; past the
+    longest preset only the whole buffer is long enough.
+    """
+    if not seconds:
+        return WHOLE_BUFFER
+    longer = [preset for preset in PRESETS if preset >= seconds]
+    return min(longer) if longer else WHOLE_BUFFER
+
+
 # --------------------------------------------------------------- directory
 def newest_file(directory):
     """(path, mtime) of the newest file in a directory, or (None, 0).
@@ -178,6 +191,49 @@ def newest_file(directory):
         if mtime > when:
             newest, when = path, mtime
     return newest, when
+
+
+VIDEO_SUFFIXES = (".mp4", ".mkv", ".flv", ".webm", ".mov", ".ts", ".m4v")
+
+
+def recent_files(directory, limit=20):
+    """[(path, mtime, size)] of the newest videos in a directory, newest first.
+
+    Videos only: the replay directory is often also where screenshots and a
+    stray .txt land, and a dial browsing "saves" that stops on a PNG is
+    browsing the wrong thing.
+    """
+    try:
+        names = os.listdir(directory)
+    except OSError:
+        return []
+    found = []
+    for name in names:
+        if name.startswith(".") or not name.lower().endswith(VIDEO_SUFFIXES):
+            continue
+        path = os.path.join(directory, name)
+        try:
+            info = os.stat(path)
+        except OSError:
+            continue
+        found.append((path, info.st_mtime, info.st_size))
+    found.sort(key=lambda entry: entry[1], reverse=True)
+    return found[:limit]
+
+
+def open_file(path):
+    """Hand a file to the desktop's default application, and do not wait."""
+    opener = _which("xdg-open")
+    if not opener:
+        return Result(False, "open", error="xdg-open is not installed")
+    if not path or not os.path.isfile(path):
+        return Result(False, "open", error="the file is gone")
+    try:
+        subprocess.Popen([opener, path], stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError as exc:
+        return Result(False, "open", error=str(exc))
+    return Result(True, "open")
 
 
 # -------------------------------------------------------------- gsr-ui-cli

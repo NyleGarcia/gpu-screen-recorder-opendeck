@@ -23,6 +23,7 @@ every handler is wrapped and every failure is logged and swallowed.
 
 import json
 import logging
+import math
 import os
 import queue
 import re
@@ -53,6 +54,13 @@ RECORD = "systems.garcia.gsr.record"
 STREAM = "systems.garcia.gsr.stream"
 SCREENSHOT = "systems.garcia.gsr.screenshot"
 STATUS = "systems.garcia.gsr.status"
+SECTION = "systems.garcia.gsr.section"
+
+# Every dial draws its whole touch strip as one SVG into the single pixmap this
+# layout defines. The built-in layouts carry a title and an icon slot that
+# OpenDeck paints over the top of anything sent to them.
+ENCODER_LAYOUT = "layouts/strip.json"
+CANVAS = "canvas"
 
 # Keys are redrawn on this cadence so a recording's clock ticks and a change
 # made in the overlay shows up without the deck being touched first.
@@ -72,6 +80,20 @@ BUSY_SECONDS = 2.5
 # What the Save Replay key can be set to. 0 is the whole buffer, which is the
 # only length the socket and the signals agree on exactly.
 SAVE_LENGTHS = [0, 10, 30, 60, 300, 600, 1800]
+# What a Save dial steps through when the recorder has a socket and any
+# length saves exactly. Without one the dial steps through the signal presets
+# instead, so it never lands on a length it would have to round.
+DIAL_LENGTHS = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 600, 900, 1200,
+                1800, 3600]
+# How far one detent moves a section's mark, by default and as offered.
+SECTION_STEPS = [1, 5, 10, 15, 30]
+SECTION_STEP = 5
+# How long a Replay dial stays on a browsed save after the last turn before
+# it goes back to showing the buffer.
+BROWSE_SECONDS = 6.0
+# The replay directory is listed at most this often for the "saved 2m ago"
+# line and for browsing; it can hold thousands of files.
+SAVES_SECONDS = 2.0
 
 AREA_COMMANDS = {
     "record": {"auto": "toggle-record", "region": "toggle-record-region",
@@ -94,7 +116,33 @@ def save_length(settings):
         seconds = int(float(settings.get("seconds", 0)))
     except (TypeError, ValueError):
         return 0
-    return seconds if seconds in SAVE_LENGTHS else 0
+    return seconds if seconds in SAVE_LENGTHS or seconds in DIAL_LENGTHS \
+        else 0
+
+
+def dial_lengths(buffer_seconds, exact):
+    """The lengths a Save dial turns through, shortest first, whole last.
+
+    Lengths the buffer cannot hold are left out: on a two minute buffer "save
+    the last 5m" is the whole buffer with a misleading label.
+    """
+    steps = DIAL_LENGTHS if exact else sorted(control.PRESETS)
+    if buffer_seconds:
+        steps = [seconds for seconds in steps if seconds < buffer_seconds]
+    return list(steps) + [0]
+
+
+def section_step(settings):
+    """Seconds one detent moves a section's mark."""
+    try:
+        step = int(float(settings.get("step", SECTION_STEP)))
+    except (TypeError, ValueError):
+        return SECTION_STEP
+    return step if step in SECTION_STEPS else SECTION_STEP
+
+
+def is_encoder(settings):
+    return (settings or {}).get("controller") == "Encoder"
 
 
 def length_label(seconds, exact=True):
@@ -164,6 +212,13 @@ class Plugin:
         # outside it, so what the deck asked for is remembered, keyed by the
         # process it was asked of. A new recorder starts unpaused.
         self._paused = {}
+        # context -> (replay pid, monotonic time of the mark). Keyed by the
+        # replay it was dropped in: a mark outlives nothing, and a buffer
+        # restarted since holds none of what came before it.
+        self._marks = {}
+        # context -> (index into recent saves, monotonic time it ends).
+        self._browse = {}
+        self._saves_cache = (0.0, "", [])
         self._theme = render.DEFAULT_THEME
 
     # ------------------------------------------------------------ outbound
@@ -187,6 +242,30 @@ class Plugin:
         # The image carries the text, so any title OpenDeck would draw on top
         # of it is duplication; clearing it keeps the key clean.
         self._send("setTitle", context, {"title": "", "target": 0})
+
+    def _paint_strip(self, context, image):
+        """The dial's touch strip, sent only when it changed.
+
+        Encoders get the key image as well: OpenDeck's editor draws a dial
+        from it, and with feedback alone every dial would sit there as the
+        manifest's static icon.
+        """
+        if self._drawn.get((context, "strip")) == image:
+            return
+        self._drawn[(context, "strip")] = image
+        self._send("setFeedback", context, {CANVAS: render.data_uri(image)})
+
+    def _forget(self, context):
+        """Drop what was last drawn, so the next render is sent regardless."""
+        self._drawn.pop(context, None)
+        self._drawn.pop((context, "strip"), None)
+
+    def _persist(self, context, settings):
+        """Store settings a dial changed, the way an inspector would."""
+        self._contexts[context] = settings
+        self._send("setSettings", context,
+                   {k: v for k, v in settings.items()
+                    if k not in ("controller", "action")})
 
     # --------------------------------------------------------- reading state
     def _scan(self, force=False):
@@ -246,6 +325,8 @@ class Plugin:
             self._render_screenshot(context, settings)
         elif action == STATUS:
             self._render_status(context, settings)
+        elif action == SECTION:
+            self._render_section(context, settings)
 
     def _flash_path(self, context):
         """The file a recent press produced, while it is still worth showing."""
@@ -257,22 +338,59 @@ class Plugin:
 
     def _render_replay(self, context, settings, busy_until):
         inst = self._instance("replay")
+        encoder = is_encoder(settings)
         if inst is None:
+            buffer = config.replay_seconds()
             if time.monotonic() < busy_until:
-                self._paint(context, render.replay_key(
-                    False, config.replay_seconds(), note=t("key.starting")))
-                return
-            if not control.ui_running():
-                self._paint(context, render.replay_key(
-                    False, 0, unavailable=True,
-                    note=t("key.ui_not_running")))
-                return
+                note, unavailable = t("key.starting"), False
+            elif not control.ui_running():
+                note, unavailable = t("key.ui_not_running"), True
+            else:
+                note, unavailable = "", False
             self._paint(context, render.replay_key(
-                False, config.replay_seconds()))
+                False, 0 if unavailable else buffer, unavailable=unavailable,
+                note=note))
+            if encoder:
+                self._paint_strip(context, render.replay_strip(
+                    False, buffer, browse=self._browsing(context, inst),
+                    unavailable=unavailable, note=note))
             return
+        fill = state.buffer_fill(inst)
         self._paint(context, render.replay_key(
-            True, inst["replay_seconds"], state.buffer_fill(inst),
-            inst["age"], inst["replay_storage"]))
+            True, inst["replay_seconds"], fill, inst["age"],
+            inst["replay_storage"]))
+        if encoder:
+            saves = self._saves(inst)
+            last = max(0.0, time.time() - saves[0][1]) if saves else None
+            self._paint_strip(context, render.replay_strip(
+                True, inst["replay_seconds"], fill, inst["age"],
+                inst["replay_storage"], last_save=last,
+                browse=self._browsing(context, inst)))
+
+    def _saves(self, inst):
+        """The newest videos in the replay directory, listed at most every
+        couple of seconds however many dials ask."""
+        directory = (inst or {}).get("output") or config.replay_directory()
+        listed_at, cached_dir, saves = self._saves_cache
+        now = time.monotonic()
+        if cached_dir != directory or now - listed_at >= SAVES_SECONDS:
+            saves = control.recent_files(directory) if directory else []
+            self._saves_cache = (now, directory, saves)
+        return saves
+
+    def _browsing(self, context, inst):
+        """(path, age, size, index, count) of the save a dial is turned to."""
+        index, until = self._browse.get(context, (0, 0.0))
+        if time.monotonic() >= until:
+            self._browse.pop(context, None)
+            return None
+        saves = self._saves(inst)
+        if not saves:
+            return None
+        index = min(index, len(saves) - 1)
+        path, mtime, byte_count = saves[index]
+        return (path, max(0.0, time.time() - mtime), byte_count, index,
+                len(saves))
 
     def _render_save(self, context, settings):
         inst = self._instance("replay")
@@ -280,33 +398,96 @@ class Plugin:
         exact = bool(inst and control.socket_alive(inst.get("ipc")))
         if not exact and seconds:
             seconds = control.snap_seconds(seconds)
+        label = length_label(seconds, exact or not seconds)
+        flash = self._flash_path(context)
+        pending = context in self._pending
         self._paint(context, render.save_key(
-            length_label(seconds, exact or not seconds),
-            inst is not None,
-            flash=self._flash_path(context),
-            pending=context in self._pending,
+            label, inst is not None, flash=flash, pending=pending,
             note=t("key.replay_off")))
+        if is_encoder(settings):
+            buffer = inst["replay_seconds"] if inst else 0
+            fraction = min(1.0, seconds / buffer) if seconds and buffer \
+                else 1.0
+            self._paint_strip(context, render.save_strip(
+                label, inst is not None, fraction, flash=flash,
+                pending=pending, note=t("key.replay_off")))
+
+    def _section(self, context, inst):
+        """What a press on a marked Section would save, or None.
+
+        The length is rounded up, never to the nearest: the point of a mark
+        is the moment it was dropped for, and a signalled save rounded down
+        cuts exactly that off. Past what the buffer holds, the answer is the
+        whole buffer and the key says so.
+        """
+        mark = self._marks.get(context)
+        if mark is None or inst is None or mark[0] != inst["pid"]:
+            self._marks.pop(context, None)
+            return None
+        elapsed = max(0.0, time.monotonic() - mark[1])
+        buffer = inst.get("replay_seconds") or 0
+        held = min(buffer, inst.get("age") or 0.0) if buffer \
+            else inst.get("age") or elapsed
+        capped = elapsed >= held
+        wanted = int(math.ceil(min(elapsed, held)))
+        exact = control.socket_alive(inst.get("ipc"))
+        if capped or (buffer and wanted >= buffer):
+            seconds = 0
+        elif exact:
+            seconds = max(1, wanted)
+        else:
+            seconds = control.cover_seconds(max(1, wanted))
+            if buffer and seconds >= buffer:
+                seconds = 0
+        return {
+            "elapsed": elapsed,
+            "seconds": seconds,
+            "label": length_label(seconds, exact or not seconds),
+            "fraction": min(1.0, elapsed / buffer) if buffer else 0.0,
+            "capped": capped,
+        }
+
+    def _render_section(self, context, settings):
+        inst = self._instance("replay")
+        section = self._section(context, inst)
+        flash = self._flash_path(context)
+        pending = context in self._pending
+        common = {"ready": inst is not None, "flash": flash,
+                  "pending": pending, "note": t("key.replay_off")}
+        if section is None:
+            self._paint(context, render.section_key(False, **common))
+            if is_encoder(settings):
+                self._paint_strip(context, render.section_strip(
+                    False, **common))
+            return
+        self._paint(context, render.section_key(
+            True, section["elapsed"], section["label"],
+            capped=section["capped"], **common))
+        if is_encoder(settings):
+            self._paint_strip(context, render.section_strip(
+                True, section["elapsed"], section["label"],
+                section["fraction"], capped=section["capped"], **common))
 
     def _render_record(self, context, settings, busy_until):
         inst, recording = self._recording()
+        encoder = is_encoder(settings)
         if recording is not None:
-            self._paint(context, render.record_key(
-                True, self._recording_elapsed(inst, recording), recording[1],
-                paused=self._paused.get(inst["pid"], False),
-                in_replay=inst["mode"] != "record"))
-            return
-        host = self._instance("record")
-        if time.monotonic() < busy_until:
-            self._paint(context, render.record_key(
-                False, in_replay=bool(host and host["mode"] != "record"),
-                note=t("key.starting")))
-            return
-        if host is None and not control.ui_running():
-            self._paint(context, render.record_key(
-                False, unavailable=True, note=t("key.ui_not_running")))
-            return
-        self._paint(context, render.record_key(
-            False, in_replay=bool(host and host["mode"] != "record")))
+            args = (True, self._recording_elapsed(inst, recording),
+                    recording[1])
+            options = {"paused": self._paused.get(inst["pid"], False),
+                       "in_replay": inst["mode"] != "record"}
+        else:
+            host = self._instance("record")
+            options = {"in_replay": bool(host and host["mode"] != "record")}
+            args = (False,)
+            if time.monotonic() < busy_until:
+                options["note"] = t("key.starting")
+            elif host is None and not control.ui_running():
+                options = {"unavailable": True,
+                           "note": t("key.ui_not_running")}
+        self._paint(context, render.record_key(*args, **options))
+        if encoder:
+            self._paint_strip(context, render.record_strip(*args, **options))
 
     def _render_stream(self, context, settings, busy_until):
         inst = self._instance("stream")
@@ -406,7 +587,7 @@ class Plugin:
         if context in self._pending:
             return
         self._pending.add(context)
-        self._drawn.pop(context, None)
+        self._forget(context)
 
         def body():
             try:
@@ -421,7 +602,7 @@ class Plugin:
 
     def _finish(self, context, result):
         self._pending.discard(context)
-        self._drawn.pop(context, None)
+        self._forget(context)
         if result.ok:
             self._send("showOk", context)
             if result.path:
@@ -435,7 +616,7 @@ class Plugin:
 
     def _mark_busy(self, context):
         self._busy[context] = time.monotonic() + BUSY_SECONDS
-        self._drawn.pop(context, None)
+        self._forget(context)
 
     def _press(self, context):
         settings = self._contexts.get(context) or {}
@@ -445,11 +626,17 @@ class Plugin:
         elif action == SAVE:
             self._press_save(context, settings)
         elif action == RECORD:
+            if is_encoder(settings):
+                # A dial pauses by turning, so its press is always start and
+                # stop whatever the key setting says.
+                settings = dict(settings, press="toggle")
             self._press_record(context, settings)
         elif action == STREAM:
             self._press_stream(context)
         elif action == SCREENSHOT:
             self._press_screenshot(context, settings)
+        elif action == SECTION:
+            self._press_section(context)
         # A status key is a readout. Pressing it does nothing on purpose:
         # there is no sensible single action for "the recorder in general",
         # and guessing one is how a glance at the deck turns into a stopped
@@ -505,6 +692,141 @@ class Plugin:
         self._mark_busy(context)
         self._run(context, lambda: control.ui_cli(command))
 
+    def _press_section(self, context):
+        """First press drops a mark; the next saves from it to now."""
+        inst = self._instance("replay")
+        if inst is None:
+            self._send("showAlert", context)
+            return
+        if context in self._pending:
+            return
+        section = self._section(context, inst)
+        if section is None:
+            self._marks[context] = (inst["pid"], time.monotonic())
+            self._forget(context)
+            self._render(context)
+            return
+        del self._marks[context]
+        seconds = section["seconds"]
+        self._run(context, lambda: control.save_replay(inst, seconds))
+
+    # --------------------------------------------------------------- dials
+    def _rotate(self, context, ticks):
+        if not ticks:
+            return
+        settings = self._contexts.get(context) or {}
+        action = settings.get("action")
+        if action == SAVE:
+            self._rotate_save(context, settings, ticks)
+        elif action == SECTION:
+            self._rotate_section(context, settings, ticks)
+        elif action == REPLAY:
+            self._rotate_replay(context, ticks)
+        elif action == RECORD:
+            self._rotate_record(context, ticks)
+        self._render(context)
+
+    def _rotate_save(self, context, settings, ticks):
+        """Turn through the lengths this recorder can save, and keep it."""
+        inst = self._instance("replay")
+        exact = bool(inst and control.socket_alive(inst.get("ipc")))
+        buffer = inst["replay_seconds"] if inst else config.replay_seconds()
+        choices = dial_lengths(buffer, exact)
+        current = save_length(settings)
+        if current and not exact:
+            current = control.snap_seconds(current)
+        if current in choices:
+            index = choices.index(current)
+        else:
+            # A length longer than this buffer reads as the whole of it.
+            index = len(choices) - 1
+        index = max(0, min(len(choices) - 1, index + ticks))
+        self._persist(context, dict(settings, seconds=choices[index]))
+
+    def _rotate_section(self, context, settings, ticks):
+        """Move the mark: left is further back, right is closer to now.
+
+        With no mark, turning left drops one that many steps in the past --
+        "the last 20 seconds, and keep going" -- and turning right past now
+        takes the mark away again.
+        """
+        inst = self._instance("replay")
+        if inst is None or context in self._pending:
+            return
+        now = time.monotonic()
+        mark = self._marks.get(context)
+        if mark is not None and mark[0] != inst["pid"]:
+            mark = None
+        start = (mark[1] if mark else now) + ticks * section_step(settings)
+        buffer = inst.get("replay_seconds") or 0
+        held = min(buffer, inst.get("age") or 0.0) if buffer \
+            else inst.get("age") or 0.0
+        start = max(now - held, start)
+        if start >= now:
+            self._marks.pop(context, None)
+        else:
+            self._marks[context] = (inst["pid"], start)
+        self._forget(context)
+
+    def _rotate_replay(self, context, ticks):
+        """Turn through recent saves: right is older, left back to newer."""
+        saves = self._saves(self._instance("replay"))
+        if not saves:
+            return
+        index, until = self._browse.get(context, (0, 0.0))
+        if time.monotonic() >= until:
+            # The first detent shows the newest save rather than skipping it.
+            index = -1 if ticks > 0 else 0
+            if ticks < 0:
+                return
+        index += ticks
+        if index < 0:
+            self._browse.pop(context, None)
+            return
+        index = min(index, len(saves) - 1)
+        self._browse[context] = (index, time.monotonic() + BROWSE_SECONDS)
+
+    def _rotate_record(self, context, ticks):
+        """Left pauses, right resumes. Only ever changes something once."""
+        inst, recording = self._recording()
+        if recording is None or context in self._pending:
+            return
+        paused = self._paused.get(inst["pid"], False)
+        if (ticks < 0) == paused:
+            return
+        self._paused[inst["pid"]] = not paused
+        self._run(context, lambda: control.toggle_pause(inst))
+
+    def _tap(self, context):
+        """A tap on the touch strip. Like a press, except where it can't be.
+
+        On Replay a press already toggles the buffer, so a tap opens the
+        browsed save (or starts browsing); on Section a press is mark/save,
+        so a tap is the only way to throw a mark away.
+        """
+        settings = self._contexts.get(context) or {}
+        action = settings.get("action")
+        if action == REPLAY:
+            browsing = self._browsing(context, self._instance("replay"))
+            if browsing is None:
+                if self._saves(self._instance("replay")):
+                    self._browse[context] = (0, time.monotonic()
+                                             + BROWSE_SECONDS)
+                else:
+                    self._send("showAlert", context)
+                self._render(context)
+                return
+            self._browse.pop(context, None)
+            path = browsing[0]
+            self._run(context, lambda: control.open_file(path))
+            return
+        if action == SECTION and context in self._marks:
+            del self._marks[context]
+            self._forget(context)
+            self._render(context)
+            return
+        self._press(context)
+
     def _press_stream(self, context):
         self._mark_busy(context)
         self._run(context, lambda: control.ui_cli("toggle-stream"))
@@ -545,6 +867,7 @@ class Plugin:
             "settings": {k: v for k, v in settings.items()
                          if k not in ("controller", "action")},
         }
+        payload["controller"] = settings.get("controller", "Keypad")
         if action == SAVE:
             payload["exact"] = bool(replay
                                     and control.socket_alive(replay["ipc"]))
@@ -557,6 +880,12 @@ class Plugin:
             payload["buffer"] = (replay["replay_seconds"] if replay
                                  else config.replay_seconds())
             payload["buffer_label"] = render.duration(payload["buffer"] or 0)
+        if action == SECTION:
+            payload["exact"] = bool(replay
+                                    and control.socket_alive(replay["ipc"]))
+            payload["buffer"] = (replay["replay_seconds"] if replay
+                                 else config.replay_seconds())
+            payload["steps"] = SECTION_STEPS
         if action in (REPLAY, STATUS):
             payload["buffer"] = (replay["replay_seconds"] if replay
                                  else config.replay_seconds())
@@ -581,7 +910,10 @@ class Plugin:
             self._contexts[context] = settings
             # A redraw after a settings change must not be suppressed by the
             # previous setting's cached image.
-            self._drawn.pop(context, None)
+            self._forget(context)
+            if settings["controller"] == "Encoder":
+                self._send("setFeedbackLayout", context,
+                           {"layout": ENCODER_LAYOUT})
             self._render(context)
         elif event == "didReceiveGlobalSettings":
             name = (payload.get("settings") or {}).get("theme")
@@ -595,11 +927,24 @@ class Plugin:
             self._render_all()
         elif event == "willDisappear":
             self._contexts.pop(context, None)
-            self._drawn.pop(context, None)
+            self._forget(context)
             self._flash.pop(context, None)
             self._busy.pop(context, None)
-        elif event in ("keyDown", "dialDown", "touchTap"):
+            self._browse.pop(context, None)
+            # The mark is kept. Flipping to another page of the deck and back
+            # is a disappear and an appear, and should not throw away the
+            # start of a section; a mark in a replay since restarted is
+            # dropped when it is next read.
+        elif event in ("keyDown", "dialDown"):
             self._press(context)
+        elif event == "touchTap":
+            self._tap(context)
+        elif event == "dialRotate":
+            try:
+                ticks = int(payload.get("ticks", 0))
+            except (TypeError, ValueError):
+                ticks = 0
+            self._rotate(context, ticks)
         elif event == "propertyInspectorDidAppear":
             # Pushed, not waited for. The panel asks once when its webview is
             # built, which can be long before anyone looks at it, and a reply

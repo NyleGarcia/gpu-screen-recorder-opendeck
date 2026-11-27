@@ -21,6 +21,10 @@
     is still filling the key shows how full it is; a save before then is
     shorter than the buffer's length.
   </p>
+  <p class="hint" id="dial" data-i18n="pi.replay.dial" hidden>
+    On a dial, turning steps through recent saves, newest first; tap the
+    strip to open the one shown. Pressing the dial does what the key would.
+  </p>
   <p class="warn" id="warn" hidden></p>
   <dl class="state" id="running"></dl>
   <div style="margin-top:16px;border-top:1px solid #343a42;padding-top:14px">
@@ -37,6 +41,7 @@ GSR.onPayload((payload) => {
   GSR.theme(payload);
   GSR.running(payload);
   press.value = GSR.settings().press || "toggle";
+  document.getElementById("dial").hidden = GSR.controller() !== "Encoder";
   warn.hidden = payload.ui;
   warn.textContent = payload.ui_cli
     ? GSR.t("pi.ui_not_running.start", "gsr-ui is not running, so this key"

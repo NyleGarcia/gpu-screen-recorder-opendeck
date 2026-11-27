@@ -32,6 +32,7 @@ ICONS_WANTED = {
     "plugin": ("record", PALETTE["hot"]),
     "replay": ("replay", PALETTE["good"]),
     "save": ("save", PALETTE["live"]),
+    "section": ("section", PALETTE["hot"]),
     "record": ("record", PALETTE["hot"]),
     "stream": ("stream", PALETTE["hot"]),
     "screenshot": ("camera", PALETTE["live"]),

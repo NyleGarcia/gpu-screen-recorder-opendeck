@@ -25,6 +25,10 @@
     "Name": "État",
     "Tooltip": "Affichage en lecture seule : ce qui est capturé, depuis quel écran, avec quelle fréquence d’images, quel codec et quel débit."
   },
+  "systems.garcia.gsr.section": {
+    "Name": "Sauver une section",
+    "Tooltip": "Appuyez pour poser une marque, appuyez encore pour sauvegarder le replay de la marque à maintenant. Sur une molette, tournez pour déplacer la marque."
+  },
   "Localization": {
     "key.off": "OFF",
     "key.on": "ON",
@@ -75,6 +79,30 @@
     "key.status.capture": "{capture} · {fps} i/s",
     "key.status.unknown": "inconnu",
     "key.status.audio": "{count} audio · {size} RAM",
+
+    "key.mark": "MARQUE",
+    "key.section.title": "Section",
+    "key.section.unavailable": "Section",
+    "key.section.press_to_mark": "appuyez pour marquer",
+    "key.section.press_to_save": "appuyez pour sauver",
+    "key.section.buffer_limit": "tampon max.",
+
+    "strip.save": "Sauver",
+    "strip.saving": "Écriture",
+    "strip.saved": "Sauvé",
+    "strip.save_last": "Sauver",
+    "strip.save.hint": "tournez : durée · appui : ok",
+    "strip.buffer": "tampon",
+    "strip.in_replay": "en replay",
+    "strip.browse.hint": "il y a {ago} · tap pour ouvrir",
+    "strip.replay.saved_ago": "sauvé il y a {ago}",
+    "strip.replay.no_saves": "rien de sauvé",
+    "strip.replay.hint": "actif {clock} · {since}",
+    "strip.section.no_mark": "sans marque",
+    "strip.section.mark_hint": "appuyez ou tournez à gauche",
+    "strip.section.save_hint": "appui : sauver · tap : annuler",
+    "strip.record.pause": "tournez à gauche : pause",
+    "strip.record.resume": "tournez à droite : reprendre",
 
     "theme.default": "Par défaut",
     "theme.amber": "Ambre",
@@ -132,6 +160,17 @@
     "pi.status.source.replay": "Le replay",
     "pi.status.source.record": "L’enregistrement",
     "pi.status.source.stream": "La diffusion",
-    "pi.status.hint": "Un affichage, pas un bouton : appuyer ne fait rien, car il n’existe pas d’action unique sensée pour « l’enregistreur en général », et en deviner une est le meilleur moyen de transformer un coup d’œil au deck en enregistrement arrêté. Elle répond à la question qui obligerait sinon à ouvrir l’overlay en pleine partie : est-ce le bon écran qui est capturé, avec la bonne fréquence d’images et le bon débit ?"
+    "pi.status.hint": "Un affichage, pas un bouton : appuyer ne fait rien, car il n’existe pas d’action unique sensée pour « l’enregistreur en général », et en deviner une est le meilleur moyen de transformer un coup d’œil au deck en enregistrement arrêté. Elle répond à la question qui obligerait sinon à ouvrir l’overlay en pleine partie : est-ce le bon écran qui est capturé, avec la bonne fréquence d’images et le bon débit ?",
+
+    "pi.replay.dial": "Sur une molette, tourner fait défiler les sauvegardes récentes, de la plus récente à la plus ancienne ; touchez la bande pour ouvrir celle affichée. Appuyer sur la molette fait ce que ferait la touche.",
+    "pi.save.dial": "Sur une molette, tourner change cette durée et la conserve ; appuyer sur la molette ou toucher la bande sauvegarde.",
+    "pi.save.dial_length": "{seconds}s (réglé par la molette)",
+    "pi.record.dial": "Sur une molette, appuyer lance ou arrête toujours ; tournez à gauche pour mettre en pause et à droite pour reprendre, le réglage d’appui ci-dessus ne concerne donc que les touches.",
+
+    "pi.section.step": "Un cran de molette déplace la marque de",
+    "pi.section.hint": "Appuyez une fois pour poser une marque ; la touche compte à partir d’elle. Appuyez encore pour sauvegarder le replay de la marque à maintenant. Sur une molette, tournez à gauche pour reculer la marque, à droite pour la rapprocher — tourner à gauche sans marque en pose une dans le passé — et touchez la bande pour supprimer la marque.",
+    "pi.section.limit": "Une section ne peut pas remonter plus loin que ce que contient le tampon. Au-delà, la touche affiche « tampon max. » et la sauvegarde est le tampon entier.",
+    "pi.section.exact": "Cet enregistreur a un socket IPC : la section est sauvegardée à la seconde près.",
+    "pi.section.signal": "Cet enregistreur a été lancé sans -ipc, la sauvegarde passe donc par un signal et seules les durées 10s, 30s, 1m, 5m, 10m, 30m et le tampon entier existent. Une section est arrondie à la durée SUPÉRIEURE, la marque est donc toujours dans le clip ; la touche marque une durée arrondie d’un *."
   }
 }

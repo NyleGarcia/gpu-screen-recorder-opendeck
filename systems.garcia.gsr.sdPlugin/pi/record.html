@@ -26,6 +26,10 @@
     and how big the file has become; a size that stops growing is a recording
     that has silently failed.
   </p>
+  <p class="hint" id="dial" data-i18n="pi.record.dial" hidden>
+    On a dial, pressing always starts or stops; turn left to pause and right
+    to resume, so the press setting above applies to keys only.
+  </p>
   <p class="warn" id="warn" hidden></p>
   <dl class="state" id="running"></dl>
   <div style="margin-top:16px;border-top:1px solid #343a42;padding-top:14px">
@@ -44,6 +48,7 @@ GSR.onPayload((payload) => {
   GSR.running(payload);
   press.value = GSR.settings().press || "toggle";
   area.value = GSR.settings().area || "auto";
+  document.getElementById("dial").hidden = GSR.controller() !== "Encoder";
   warn.hidden = press.value !== "pause";
   warn.textContent = GSR.t("pi.record.pause_warn", "Pause cannot be read"
     + " back from the recorder, so the key shows what it last asked for."

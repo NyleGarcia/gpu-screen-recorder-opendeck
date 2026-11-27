@@ -93,9 +93,23 @@ class SettingsTests(unittest.TestCase):
     def test_a_save_length_outside_the_offered_set_becomes_the_whole_buffer(self):
         self.assertEqual(gsr_plugin.save_length({"seconds": 30}), 30)
         self.assertEqual(gsr_plugin.save_length({"seconds": "600"}), 600)
-        self.assertEqual(gsr_plugin.save_length({"seconds": 45}), 0)
+        self.assertEqual(gsr_plugin.save_length({"seconds": 45}), 45)
+        self.assertEqual(gsr_plugin.save_length({"seconds": 47}), 0)
         self.assertEqual(gsr_plugin.save_length({}), 0)
         self.assertEqual(gsr_plugin.save_length({"seconds": "nonsense"}), 0)
+
+    def test_a_dial_offers_only_what_the_transport_can_save(self):
+        self.assertEqual(gsr_plugin.dial_lengths(120, exact=False),
+                         [10, 30, 60, 0])
+        exact = gsr_plugin.dial_lengths(120, exact=True)
+        self.assertEqual(exact[-1], 0)
+        self.assertIn(45, exact)
+        self.assertTrue(all(seconds < 120 for seconds in exact[:-1]))
+
+    def test_a_section_step_outside_the_offered_set_is_the_default(self):
+        self.assertEqual(gsr_plugin.section_step({"step": 10}), 10)
+        self.assertEqual(gsr_plugin.section_step({"step": 7}),
+                         gsr_plugin.SECTION_STEP)
 
     def test_a_rounded_length_is_marked_on_the_key(self):
         self.assertEqual(gsr_plugin.length_label(0), "ALL")
@@ -251,6 +265,213 @@ class ThemeTests(PluginTestCase):
             "payload": {"settings": {"theme": "chartreuse"}},
         })
         self.assertEqual(self.plugin._theme, gsr_plugin.render.DEFAULT_THEME)
+
+
+class DialTests(PluginTestCase):
+    def appear_dial(self, action, settings=None):
+        context = f"dial-{action}"
+        self.plugin._handle({
+            "event": "willAppear", "context": context, "action": action,
+            "payload": {"settings": settings or {}, "controller": "Encoder"},
+        })
+        return context
+
+    def send(self, event, context, **payload):
+        self.plugin._handle({"event": event, "context": context,
+                             "payload": payload})
+
+    def strip_text(self, context):
+        import base64
+        import xml.etree.ElementTree as ElementTree
+        for message in reversed(self.socket.sent):
+            if message.get("event") == "setFeedback" \
+                    and message.get("context") == context:
+                uri = message["payload"][gsr_plugin.CANVAS]
+                root = ElementTree.fromstring(
+                    base64.b64decode(uri.split(",", 1)[1]).decode())
+                return " ".join(node.text or "" for node in root.iter()
+                                if node.tag.endswith("text"))
+        self.fail("the strip was never drawn")
+
+    def finish_jobs(self):
+        import time
+        for _ in range(50):
+            self.plugin._drain_jobs()
+            if not self.plugin._pending:
+                return
+            time.sleep(0.02)
+
+    def test_a_dial_gets_its_layout_and_a_strip(self):
+        self.instances = [REPLAY]
+        context = self.appear_dial(gsr_plugin.REPLAY)
+        layouts = self.socket.events("setFeedbackLayout")
+        self.assertEqual(layouts[-1]["payload"]["layout"],
+                         gsr_plugin.ENCODER_LAYOUT)
+        self.assertIn("ON", self.strip_text(context))
+        # The key image too, for OpenDeck's editor.
+        self.assertTrue(self.last_image(context))
+
+    def test_a_key_gets_no_strip(self):
+        self.instances = [REPLAY]
+        self.appear(gsr_plugin.REPLAY)
+        self.assertFalse(self.socket.events("setFeedback"))
+        self.assertFalse(self.socket.events("setFeedbackLayout"))
+
+    def test_turning_a_save_dial_steps_the_length_and_keeps_it(self):
+        self.instances = [REPLAY]                  # 60s buffer, no socket
+        context = self.appear_dial(gsr_plugin.SAVE, {"seconds": 10})
+        self.send("dialRotate", context, ticks=1)
+        self.assertEqual(self.plugin._contexts[context]["seconds"], 30)
+        stored = self.socket.events("setSettings")[-1]["payload"]
+        self.assertEqual(stored, {"seconds": 30})
+        self.assertIn("30s", self.strip_text(context))
+        self.send("dialRotate", context, ticks=5)
+        self.assertEqual(self.plugin._contexts[context]["seconds"], 0)
+        self.assertIn("ALL", self.strip_text(context))
+        self.send("dialRotate", context, ticks=-9)
+        self.assertEqual(self.plugin._contexts[context]["seconds"], 10)
+
+    def test_pressing_a_save_dial_saves_what_it_shows(self):
+        self.instances = [REPLAY]
+        context = self.appear_dial(gsr_plugin.SAVE, {"seconds": 30})
+        asked = []
+        gsr_plugin.control.save_replay = lambda inst, seconds, restart: \
+            asked.append(seconds) or control.Result(True, "signal")
+        self.send("dialDown", context)
+        self.finish_jobs()
+        self.assertEqual(asked, [30])
+
+    def test_a_section_is_marked_then_saved_rounded_up(self):
+        self.instances = [REPLAY]                  # no socket: presets
+        context = self.appear_dial(gsr_plugin.SECTION)
+        self.assertIn("no mark", self.strip_text(context))
+        self.send("dialDown", context)
+        self.assertIn(context, self.plugin._marks)
+        pid, _ = self.plugin._marks[context]
+        # Pretend the mark was dropped 12 seconds ago.
+        import time
+        self.plugin._marks[context] = (pid, time.monotonic() - 12)
+        self.plugin._render(context)
+        self.assertIn("30s*", self.strip_text(context))
+        asked = []
+        gsr_plugin.control.save_replay = lambda inst, seconds: \
+            asked.append(seconds) or control.Result(True, "signal")
+        self.send("dialDown", context)
+        self.finish_jobs()
+        self.assertEqual(asked, [30])
+        self.assertNotIn(context, self.plugin._marks)
+
+    def test_a_section_over_a_socket_saves_to_the_second(self):
+        self.instances = [dict(REPLAY, ipc="/tmp/sock")]
+        gsr_plugin.control.socket_alive = lambda path: True
+        context = self.appear_dial(gsr_plugin.SECTION)
+        self.send("dialRotate", context, ticks=-3)  # mark 15s back
+        asked = []
+        gsr_plugin.control.save_replay = lambda inst, seconds: \
+            asked.append(seconds) or control.Result(True, "ipc")
+        self.send("dialDown", context)
+        self.finish_jobs()
+        self.assertEqual(len(asked), 1)
+        self.assertIn(asked[0], (15, 16))
+
+    def test_a_section_cannot_reach_past_the_buffer(self):
+        self.instances = [REPLAY]                  # 60s buffer
+        context = self.appear_dial(gsr_plugin.SECTION, {"step": 30})
+        self.send("dialRotate", context, ticks=-10)
+        section = self.plugin._section(context, REPLAY)
+        self.assertTrue(section["capped"])
+        self.assertEqual(section["seconds"], 0)
+        self.assertIn("buffer limit", self.strip_text(context))
+
+    def test_turning_a_section_right_past_now_drops_the_mark(self):
+        self.instances = [REPLAY]
+        context = self.appear_dial(gsr_plugin.SECTION)
+        self.send("dialRotate", context, ticks=-1)
+        self.assertIn(context, self.plugin._marks)
+        self.send("dialRotate", context, ticks=2)
+        self.assertNotIn(context, self.plugin._marks)
+
+    def test_a_tap_cancels_a_section_mark(self):
+        self.instances = [REPLAY]
+        context = self.appear_dial(gsr_plugin.SECTION)
+        self.send("dialDown", context)
+        self.send("touchTap", context)
+        self.assertNotIn(context, self.plugin._marks)
+
+    def test_a_mark_from_a_replay_since_restarted_is_dropped(self):
+        self.instances = [REPLAY]
+        context = self.appear_dial(gsr_plugin.SECTION)
+        self.send("dialDown", context)
+        self.instances = [dict(REPLAY, pid=9999)]
+        self.plugin._render(context)
+        self.assertNotIn(context, self.plugin._marks)
+
+    def test_a_record_dial_pauses_left_and_resumes_right_once_each(self):
+        self.instances = [with_recording(REPLAY)]
+        context = self.appear_dial(gsr_plugin.RECORD)
+        calls = []
+        gsr_plugin.control.toggle_pause = lambda inst: \
+            calls.append(inst["pid"]) or control.Result(True, "signal")
+        self.send("dialRotate", context, ticks=-1)
+        self.finish_jobs()
+        self.assertTrue(self.plugin._paused[REPLAY["pid"]])
+        self.assertIn("PAUSED", self.strip_text(context))
+        self.send("dialRotate", context, ticks=-2)  # already paused
+        self.finish_jobs()
+        self.send("dialRotate", context, ticks=1)
+        self.finish_jobs()
+        self.assertFalse(self.plugin._paused[REPLAY["pid"]])
+        self.assertEqual(len(calls), 2)
+
+    def test_a_record_dial_press_stops_even_if_the_key_is_set_to_pause(self):
+        self.instances = [with_recording(REPLAY)]
+        context = self.appear_dial(gsr_plugin.RECORD, {"press": "pause"})
+        toggled, paused = [], []
+        gsr_plugin.control.toggle_recording = lambda inst: \
+            toggled.append(1) or control.Result(True, "signal")
+        gsr_plugin.control.toggle_pause = lambda inst: \
+            paused.append(1) or control.Result(True, "signal")
+        self.send("dialDown", context)
+        self.finish_jobs()
+        self.assertEqual((toggled, paused), ([1], []))
+
+    def test_a_replay_dial_browses_saves_and_a_tap_opens_one(self):
+        import time
+        now = time.time()
+        saves = [("/videos/Replay_2026-09-07_12-00-02.mp4", now - 30, 10),
+                 ("/videos/Replay_2026-09-07_11-00-00.mp4", now - 3600, 20)]
+        gsr_plugin.control.recent_files = lambda directory, limit=20: saves
+        self.addCleanup(setattr, gsr_plugin.control, "recent_files",
+                        control.recent_files)
+        self.instances = [REPLAY]
+        context = self.appear_dial(gsr_plugin.REPLAY)
+        self.assertIn("saved 30s ago", self.strip_text(context))
+        self.send("dialRotate", context, ticks=1)
+        self.assertIn("1/2", self.strip_text(context))
+        self.send("dialRotate", context, ticks=1)
+        self.assertIn("2/2", self.strip_text(context))
+        opened = []
+        original = gsr_plugin.control.open_file
+        self.addCleanup(setattr, gsr_plugin.control, "open_file", original)
+        gsr_plugin.control.open_file = lambda path: \
+            opened.append(path) or control.Result(True, "open")
+        self.send("touchTap", context)
+        self.finish_jobs()
+        self.assertEqual(opened, [saves[1][0]])
+        self.assertIn("ON", self.strip_text(context))
+
+    def test_turning_a_replay_dial_back_past_the_newest_leaves_browsing(self):
+        import time
+        saves = [("/videos/Replay_a_12-00-00.mp4", time.time() - 5, 1)]
+        gsr_plugin.control.recent_files = lambda directory, limit=20: saves
+        self.addCleanup(setattr, gsr_plugin.control, "recent_files",
+                        control.recent_files)
+        self.instances = [REPLAY]
+        context = self.appear_dial(gsr_plugin.REPLAY)
+        self.send("dialRotate", context, ticks=1)
+        self.assertIn(context, self.plugin._browse)
+        self.send("dialRotate", context, ticks=-1)
+        self.assertNotIn(context, self.plugin._browse)
 
 
 class InspectorTests(PluginTestCase):

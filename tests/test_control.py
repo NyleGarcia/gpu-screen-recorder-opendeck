@@ -132,6 +132,51 @@ class SignalTests(unittest.TestCase):
         self.assertFalse(control.send_signal(0x7FFFFFF0, signal.SIGUSR1))
 
 
+class CoverTests(unittest.TestCase):
+    def test_a_section_is_rounded_up_so_the_mark_stays_in_the_clip(self):
+        self.assertEqual(control.cover_seconds(11), 30)
+        self.assertEqual(control.cover_seconds(30), 30)
+        self.assertEqual(control.cover_seconds(31), 60)
+
+    def test_past_the_longest_preset_only_the_whole_buffer_covers_it(self):
+        self.assertEqual(control.cover_seconds(1801), control.WHOLE_BUFFER)
+        self.assertEqual(control.cover_seconds(0), control.WHOLE_BUFFER)
+
+
+class RecentFilesTests(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir)
+
+    def touch(self, name, mtime, data=b"x"):
+        path = os.path.join(self.dir, name)
+        with open(path, "wb") as handle:
+            handle.write(data)
+        os.utime(path, (mtime, mtime))
+        return path
+
+    def test_videos_come_newest_first_and_nothing_else_does(self):
+        old = self.touch("Replay_a.mp4", 100)
+        new = self.touch("Replay_b.mkv", 200, b"xyz")
+        self.touch("Screenshot.png", 300)
+        self.touch(".Replay_c.mp4", 400)
+        found = control.recent_files(self.dir)
+        self.assertEqual([entry[0] for entry in found], [new, old])
+        self.assertEqual(found[0][2], 3)
+
+    def test_the_list_is_capped(self):
+        for index in range(5):
+            self.touch(f"Replay_{index}.mp4", 100 + index)
+        self.assertEqual(len(control.recent_files(self.dir, limit=3)), 3)
+
+    def test_an_unreadable_directory_has_no_saves(self):
+        self.assertEqual(control.recent_files(self.dir + "/missing"), [])
+
+    def test_opening_a_file_that_is_gone_fails_cleanly(self):
+        result = control.open_file(os.path.join(self.dir, "gone.mp4"))
+        self.assertFalse(result.ok)
+
+
 class DirectoryTests(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()

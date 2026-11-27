@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GPU Screen Recorder — Save Section</title>
+<link rel="stylesheet" href="_shared.css" />
+<script src="_shared.js"></script>
+</head>
+<body>
+  <label for="step" data-i18n="pi.section.step">One dial detent moves the mark</label>
+  <select id="step"></select>
+  <p class="hint" data-i18n="pi.section.hint">
+    Press once to drop a mark; the key counts up from it. Press again to save
+    the replay from the mark to now. On a dial, turn left to move the mark
+    further back, right to bring it closer — turning left with no mark drops
+    one in the past — and tap the strip to throw the mark away.
+  </p>
+  <p class="hint" data-i18n="pi.section.limit">
+    A section can reach back no further than the buffer holds. Past that the
+    key says "buffer limit" and the save is the whole buffer.
+  </p>
+  <p class="warn" id="warn" hidden></p>
+  <p class="ok" id="ok" hidden></p>
+  <dl class="state" id="running"></dl>
+  <div style="margin-top:16px;border-top:1px solid #343a42;padding-top:14px">
+    <label for="theme"><span data-i18n="pi.colours">Colours</span>
+      <span style="font-weight:400;color:#8b929b"
+        data-i18n="pi.colours_scope">— applies to every key</span></label>
+    <select id="theme"></select>
+  </div>
+<script>
+const step = document.getElementById("step");
+const warn = document.getElementById("warn");
+const ok = document.getElementById("ok");
+
+GSR.onPayload((payload) => {
+  if (!payload) return;
+  GSR.theme(payload);
+  GSR.running(payload);
+  const chosen = String(GSR.settings().step || 5);
+  if (payload.steps && !step.options.length) {
+    for (const seconds of payload.steps) {
+      step.appendChild(new Option(seconds + "s", String(seconds)));
+    }
+  }
+  step.value = chosen;
+  ok.hidden = !payload.exact;
+  ok.textContent = GSR.t("pi.section.exact", "This recorder has an IPC"
+    + " socket: the section saves to the second.");
+  warn.hidden = payload.exact;
+  warn.textContent = GSR.t("pi.section.signal", "This recorder was started"
+    + " without -ipc, so a save is sent as a signal and only 10s, 30s, 1m, 5m,"
+    + " 10m, 30m and the whole buffer exist. A section is rounded UP to the"
+    + " next of those, so the mark is always inside the clip; the key marks a"
+    + " rounded length with *.");
+});
+
+step.onchange = () => GSR.save({ step: Number(step.value) });
+GSR.report("section inspector loaded");
+</script>
+</body>
+</html>

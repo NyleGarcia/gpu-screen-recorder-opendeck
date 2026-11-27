@@ -17,6 +17,10 @@
     The key shows the file it wrote for a few seconds afterwards, which is the
     only sign a save happened — the buffer keeps running and no window opens.
   </p>
+  <p class="hint" id="dial" data-i18n="pi.save.dial" hidden>
+    On a dial, turning changes this length and keeps it; pressing the dial or
+    tapping the strip saves.
+  </p>
   <p class="warn" id="warn" hidden></p>
   <p class="ok" id="ok" hidden></p>
   <dl class="state" id="running"></dl>
@@ -55,6 +59,14 @@ GSR.onPayload((payload) => {
       + " Screen Recorder's settings to save more.",
       { length: payload.buffer_label || "" });
   }
+  // A dial can land on a length the list does not offer (45s, 2m...).
+  if (chosen !== "0" && ![...seconds.options].some((o) => o.value === chosen)) {
+    const option = new Option(GSR.t("pi.save.dial_length",
+      "{seconds}s (set by the dial)", { seconds: chosen }), chosen);
+    option.selected = true;
+    seconds.appendChild(option);
+  }
+  document.getElementById("dial").hidden = GSR.controller() !== "Encoder";
   restart.checked = !!GSR.settings().restart;
   // Without a socket the length is a signal, and there are only six of them.
   restart.disabled = !payload.exact;

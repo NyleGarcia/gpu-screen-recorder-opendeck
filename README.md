@@ -5,7 +5,7 @@ An [OpenDeck](https://github.com/nekename/OpenDeck) plugin that puts
 Stream Deck: the replay buffer, the recording and the stream visible on the
 keys without leaving the game, and one physical key that saves the buffer.
 
-![The six actions on a deck: Replay, Save Replay, Record, Stream, Screenshot and Status](.github/preview.png)
+![The six key actions on a deck: Replay, Save Replay, Record, Stream, Screenshot and Status](.github/preview.png)
 
 Linux only, Python only, no dependencies — it runs against whatever `python3`
 the distribution ships.
@@ -16,6 +16,7 @@ the distribution ships.
 | --- | --- | --- |
 | **Replay** | Whether the buffer is running, how long it is, which storage it uses, and how full it is while it is still filling | Starts or stops the replay (settable to start-only or stop-only) |
 | **Save Replay** | How much it will save, and the name of the file it just wrote | Saves the buffer — whole, or the last 10s / 30s / 1m / 5m / 10m / 30m |
+| **Save Section** | `MARK`, or the time since the mark and how much a save will be | First press marks a start, second saves the replay from the mark to now |
 | **Record** | `REC` with elapsed time and the file's size, or `PAUSED` | Starts or stops a recording, including one inside a running replay; can be set to pause instead |
 | **Stream** | `LIVE`, the service, and how long it has been up | Starts or stops streaming |
 | **Screenshot** | The area it captures and the last file written | Takes a screenshot of the screen, a region or a window |
@@ -30,12 +31,44 @@ hotkey shows on the deck without the deck being touched.
 | --- | --- | --- |
 | **Replay** | <img src=".github/keys/replay-idle.png" width="96" alt="Replay off"> <img src=".github/keys/replay-filling.png" width="96" alt="Replay filling"> <img src=".github/keys/replay-full.png" width="96" alt="Replay full"> <img src=".github/keys/replay-unavailable.png" width="96" alt="Replay, overlay not running"> | off · filling (bar = how much a save gets) · full · overlay not running |
 | **Save Replay** | <img src=".github/keys/save-ready.png" width="96" alt="Save ready"> <img src=".github/keys/save-signal.png" width="96" alt="Save by signal, length rounded"> <img src=".github/keys/save-saved.png" width="96" alt="Save just wrote a file"> <img src=".github/keys/save-off.png" width="96" alt="Save with replay off"> | ready · `*` = rounded to a signal length · just saved · replay off |
+| **Save Section** | <img src=".github/keys/section-idle.png" width="96" alt="Section, no mark"> <img src=".github/keys/section-marked.png" width="96" alt="Section marked 42 seconds ago"> | no mark · marked (corner = what a save gives) |
 | **Record** | <img src=".github/keys/record-idle.png" width="96" alt="Record idle"> <img src=".github/keys/record-recording.png" width="96" alt="Recording"> <img src=".github/keys/record-paused.png" width="96" alt="Recording paused"> <img src=".github/keys/record-in-replay.png" width="96" alt="Recording inside a replay"> | idle · recording · paused · recording inside a replay |
 | **Stream** | <img src=".github/keys/stream-idle.png" width="96" alt="Stream idle"> <img src=".github/keys/stream-live.png" width="96" alt="Streaming live"> | idle · live |
 | **Screenshot** | <img src=".github/keys/screenshot-ready.png" width="96" alt="Screenshot ready"> <img src=".github/keys/screenshot-saved.png" width="96" alt="Screenshot just saved"> | ready · just saved |
 | **Status** | <img src=".github/keys/status-idle.png" width="96" alt="Status idle"> <img src=".github/keys/status-replay.png" width="96" alt="Status during a replay"> | idle · replay running |
 
 These are drawn by the plugin's own renderer (`make preview`), not mocked up.
+
+### Dials (Stream Deck+)
+
+Replay, Save Replay, Save Section and Record also go on a dial. Each one draws
+its whole segment of the touch strip.
+
+| Dial | Turn | Press | Tap the strip |
+| --- | --- | --- | --- |
+| **Replay** | Step through recent saves, newest first; turn back past the newest to leave | Start or stop the replay | Show the newest save; while browsing, open the one shown |
+| **Save Replay** | Choose how much to save (kept, like the inspector setting) | Save | Save |
+| **Save Section** | Move the mark: left is further back, right is closer to now. Left with no mark drops one in the past; right past now removes it | Mark, then save from the mark to now | Throw the mark away |
+| **Record** | Left pauses, right resumes | Start or stop, whatever the key's press setting is | Start or stop |
+
+| Dial | Strip |
+| --- | --- |
+| **Replay** | <img src=".github/keys/strip-replay-live.png" width="133" alt="Replay strip"> <img src=".github/keys/strip-replay-browse.png" width="133" alt="Replay strip browsing saves"> |
+| **Save Replay** | <img src=".github/keys/strip-save-ready.png" width="133" alt="Save strip"> <img src=".github/keys/strip-save-saved.png" width="133" alt="Save strip after saving"> |
+| **Save Section** | <img src=".github/keys/strip-section-idle.png" width="133" alt="Section strip with no mark"> <img src=".github/keys/strip-section-marked.png" width="133" alt="Section strip marked"> |
+| **Record** | <img src=".github/keys/strip-record-recording.png" width="133" alt="Record strip"> <img src=".github/keys/strip-record-paused.png" width="133" alt="Record strip paused"> |
+
+A section always **ends now**. The recorder can only save "the last N
+seconds", so a window that ends in the past would mean cutting a saved file
+afterwards. Without an IPC socket a section is rounded **up** to the next
+signal length (10s, 30s, 1m, 5m, 10m, 30m), so the mark is always inside the
+clip. A section longer than the buffer saves the whole buffer and the strip
+says `buffer limit`.
+
+With a socket the Save dial turns in fine steps (5s, 10s, 15s, 20s, 30s, 45s,
+1m, 1m30…). Without one it steps through the signal lengths only, so it never
+lands on a length it would have to round. Lengths longer than the buffer are
+left out either way.
 
 ## How it talks to the recorder
 
@@ -230,9 +263,10 @@ systems.garcia.gsr.sdPlugin/
     state.py         what the recorder is doing, read from /proc
     control.py       the three ways to drive it
     config.py        GPU Screen Recorder's own settings, read-only
-    render.py        the key art
+    render.py        the key and touch-strip art
     i18n.py          picks a language and looks its strings up
     ws.py            a minimal RFC 6455 client
+  layouts/strip.json the dial layout: one full-strip pixmap
   pi/                property inspectors
   lang/              one translation file per language
 ```

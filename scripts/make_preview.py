@@ -74,6 +74,10 @@ def states():
             ("idle", render.stream_key(False, "Twitch")),
             ("live", render.stream_key(True, "Twitch", 3725)),
         ],
+        "section": [
+            ("idle", render.section_key(False)),
+            ("marked", render.section_key(True, 42, "1m*")),
+        ],
         "screenshot": [
             ("ready", render.screenshot_key("Region")),
             ("saved", render.screenshot_key("Region", flash=shot)),
@@ -84,6 +88,33 @@ def states():
                                         "stream Twitch", "gsr-ui up"],
                                        "IDLE", "idle")),
             ("replay", keys()[5]),
+        ],
+    }
+
+
+def strips():
+    """dial -> [(state, svg)] for the Stream Deck+ touch strip."""
+    render.set_theme("default")
+    clip = os.path.expanduser("~/Videos/Replay_2026-09-28_21-14-03.mp4")
+    return {
+        "replay": [
+            ("live", render.replay_strip(True, 120, 1.0, 900,
+                                         last_save=140)),
+            ("browse", render.replay_strip(
+                True, 120, browse=(clip, 140, 96 << 20, 0, 12))),
+        ],
+        "save": [
+            ("ready", render.save_strip("45s", True, 0.375)),
+            ("saved", render.save_strip("45s", True, flash=clip)),
+        ],
+        "section": [
+            ("idle", render.section_strip(False)),
+            ("marked", render.section_strip(True, 42, "1m*", 0.35)),
+        ],
+        "record": [
+            ("recording", render.record_strip(True, 754, 1_480_000_000)),
+            ("paused", render.record_strip(True, 754, 1_480_000_000,
+                                           paused=True)),
         ],
     }
 
@@ -139,6 +170,15 @@ def main():
             base = os.path.join(KEYS_DIR, f"{action}-{state}")
             with open(base + ".svg", "w", encoding="utf-8") as handle:
                 handle.write(key)
+            if not rasterise(base + ".svg", base + ".png"):
+                return 1
+            os.remove(base + ".svg")
+            print(base + ".png")
+    for dial, variants in strips().items():
+        for state, strip in variants:
+            base = os.path.join(KEYS_DIR, f"strip-{dial}-{state}")
+            with open(base + ".svg", "w", encoding="utf-8") as handle:
+                handle.write(strip)
             if not rasterise(base + ".svg", base + ".png"):
                 return 1
             os.remove(base + ".svg")

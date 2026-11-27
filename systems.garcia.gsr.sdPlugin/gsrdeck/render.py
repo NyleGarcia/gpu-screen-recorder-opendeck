@@ -103,6 +103,9 @@ _GAUGE_ARC = "M4 17a8.6 8.6 0 1 1 16 0"
 _GAUGE_NEEDLE = "M12 17 16.2 10.6"
 _PAUSE_L = (8.2, 5.6, 2.9, 12.8, 1.2)
 _PAUSE_R = (12.9, 5.6, 2.9, 12.8, 1.2)
+# A pair of brackets around a dot: the span between a mark and now.
+_BRACKETS = "M8 4.4H5.4v15.2H8M16 4.4h2.6v15.2H16"
+_MARK = "M12 9.6a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z"
 
 # Each glyph is drawn on a 24x24 grid: filled paths, stroked paths, and
 # rounded rectangles, which is what a pause bar wants and what a path would
@@ -119,6 +122,7 @@ GLYPHS = {
     "status": {"fill": [], "stroke": [_GAUGE_ARC, _GAUGE_NEEDLE],
                "rects": []},
     "pause": {"fill": [], "stroke": [], "rects": [_PAUSE_L, _PAUSE_R]},
+    "section": {"fill": [_MARK], "stroke": [_BRACKETS], "rects": []},
 }
 
 
@@ -479,3 +483,193 @@ def status_key(lines, headline="", accent_name="idle"):
                             THEME["text"] if index == 0 else THEME["dim"],
                             weight="600" if index == 0 else "400")
     return _document(body, accent)
+
+
+def section_key(marked, elapsed=0.0, length_label="", ready=True, flash="",
+                pending=False, capped=False, note=""):
+    """The Save Section key: a mark dropped, and how long ago.
+
+    The clock is the length of what a second press will save, so it counts up
+    from the mark rather than showing the time of day the mark was dropped --
+    "1:12 ago" is the decision being made, "21:14:03" has to be subtracted
+    from the clock first.
+    """
+    if pending or flash:
+        return save_key(length_label, True, flash=flash, pending=pending)
+    if not ready:
+        return unavailable_key("section", t("key.section.unavailable"),
+                               note or t("key.replay_off"))
+    if not marked:
+        accent = THEME["live"]
+        body = (
+            _glyph("section", accent, 11, 11, 1.3)
+            + _corner(t("key.mark"), accent, weight="bold")
+            + _text_block([t("key.section.title")], 90, 24, THEME["text"])
+            + _text_block([t("key.section.press_to_mark")], 116, 14, THEME["dim"],
+                          weight="400")
+        )
+        return _document(body, accent)
+    accent = THEME["hot"]
+    body = (
+        _glyph("section", accent, 11, 11, 1.3)
+        + _corner(length_label, accent, weight="bold")
+        + _text_block([clock(elapsed)], 84, 29, THEME["text"])
+        + _text_block([t("key.section.buffer_limit") if capped
+                       else t("key.section.press_to_save")], 108,
+                      13, THEME["dim"], weight="400")
+    )
+    return _document(body, accent)
+
+
+# ------------------------------------------------------------------- strips
+STRIP_W, STRIP_H = 200, 100
+
+
+def _strip(glyph, accent, title, tag="", readout="", aside="", bar=None,
+           hint="", slashed=False):
+    """A Stream Deck+ touch strip segment, drawn whole.
+
+    Three rows on a 200x100 canvas: what the dial is, the one number worth
+    reading, and a bar or a hint for what turning or pressing does. The
+    layout is a single full-canvas pixmap (layouts/strip.json) so nothing
+    OpenDeck draws itself lands on top of it.
+    """
+    body = (
+        f'<rect width="{STRIP_W}" height="{STRIP_H}" fill="{THEME["bg"]}"/>'
+        + _glyph(glyph, accent, 10, 8, 1.2, slashed=slashed)
+        + f'<text x="46" y="30" fill="{THEME["text"]}" font-size="19" '
+        f'font-family="{FONT}" font-weight="600">'
+        f'{_escape(_fit(title, 10))}</text>'
+    )
+    if tag:
+        body += (f'<text x="{STRIP_W - 10}" y="30" fill="{accent}" '
+                 f'font-size="16" font-family="{FONT}" font-weight="bold" '
+                 f'text-anchor="end">{_escape(_fit(tag, 8))}</text>')
+    if readout:
+        body += (f'<text x="12" y="64" fill="{THEME["text"]}" '
+                 f'font-size="27" font-family="{FONT}" font-weight="bold">'
+                 f'{_escape(_fit(readout, 12))}</text>')
+    if aside:
+        body += (f'<text x="{STRIP_W - 10}" y="63" fill="{THEME["dim"]}" '
+                 f'font-size="14" font-family="{FONT}" text-anchor="end">'
+                 f'{_escape(_fit(aside, 12))}</text>')
+    if bar is not None:
+        left, width, top, height = 12, STRIP_W - 24, 74, 6
+        filled = max(0.0, min(1.0, bar)) * width
+        body += (f'<rect x="{left}" y="{top}" width="{width}" '
+                 f'height="{height}" rx="{height / 2}" '
+                 f'fill="{THEME["track"]}"/>')
+        if filled > 0.5:
+            body += (f'<rect x="{left}" y="{top}" width="{filled:.1f}" '
+                     f'height="{height}" rx="{height / 2}" '
+                     f'fill="{accent}"/>')
+    if hint:
+        body += (f'<text x="12" y="{94 if bar is not None else 88}" '
+                 f'fill="{THEME["dim"]}" font-size="12" font-family="{FONT}">'
+                 f'{_escape(_fit(hint, 30))}</text>')
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{STRIP_W}" '
+            f'height="{STRIP_H}" viewBox="0 0 {STRIP_W} {STRIP_H}">'
+            f'{body}</svg>')
+
+
+def _saved_time(path):
+    """The part of a saved file's name that fits the strip's readout: the
+    time in "Replay_2026-09-28_21-14-03.mp4"."""
+    label = file_label(path)
+    return label[-1] if label and label[-1] else t("key.saved_file")
+
+
+def replay_strip(on, seconds, fill=0.0, age=0.0, storage="ram",
+                 last_save=None, browse=None, unavailable=False, note=""):
+    """The Replay dial: the buffer, and the saves it has produced.
+
+    `last_save` is how long ago the newest file in the replay directory was
+    written, whoever wrote it -- a save from the overlay's hotkey counts.
+    `browse` is (path, age, size, index, count) while the dial is being
+    turned through recent saves.
+    """
+    if browse:
+        path, ago, byte_count, index, count = browse
+        # The kind on the title row and the time large: "Replay 12:00:00"
+        # on one line does not fit at the readout's size.
+        label = file_label(path) + [""]
+        return _strip("save", THEME["live"], label[0] or t("strip.save"),
+                      tag=f"{index + 1}/{count}", readout=label[1],
+                      aside=size(byte_count) if byte_count else "",
+                      hint=t("strip.browse.hint", ago=duration(ago)))
+    if unavailable:
+        return _strip("replay", THEME["idle"], t("key.replay.title"),
+                      tag=t("key.off"),
+                      hint=note or t("key.ui_not_running"), slashed=True)
+    if not on:
+        return _strip("replay", THEME["idle"], t("key.replay.title"),
+                      tag=t("key.off"),
+                      readout=duration(seconds) if seconds else "",
+                      aside=t("strip.buffer") if seconds else "",
+                      hint=note or t("key.press_to_start"), slashed=True)
+    accent = THEME["good"]
+    since = (t("strip.replay.saved_ago", ago=duration(last_save))
+             if last_save is not None else t("strip.replay.no_saves"))
+    return _strip("replay", accent, t("key.replay.title"), tag=t("key.on"),
+                  readout=duration(seconds), aside=storage.upper(),
+                  bar=fill if fill < 0.999 else None,
+                  hint=t("strip.replay.hint", clock=clock(age), since=since))
+
+
+def save_strip(length_label, ready, fraction=1.0, flash="", pending=False,
+               note=""):
+    """The Save dial: turn for how much, press to save it."""
+    if pending:
+        return _strip("save", THEME["live"], t("strip.saving"),
+                      tag=length_label, readout=t("key.save.saving"),
+                      bar=1.0)
+    if flash:
+        return _strip("save", THEME["good"], t("strip.saved"), tag="✓",
+                      readout=_saved_time(flash))
+    if not ready:
+        return _strip("save", THEME["idle"], t("strip.save"), slashed=True,
+                      hint=note or t("key.replay_off"))
+    return _strip("save", THEME["live"], t("strip.save_last"),
+                  readout=length_label, bar=fraction,
+                  hint=t("strip.save.hint"))
+
+
+def section_strip(marked, elapsed=0.0, length_label="", fraction=0.0,
+                  ready=True, flash="", pending=False, capped=False, note=""):
+    """The Section dial: mark, nudge the mark, save from it to now."""
+    if pending or flash:
+        return save_strip(length_label, True, flash=flash, pending=pending)
+    if not ready:
+        return _strip("section", THEME["idle"], t("key.section.title"),
+                      slashed=True, hint=note or t("key.replay_off"))
+    if not marked:
+        return _strip("section", THEME["live"], t("key.section.title"),
+                      tag=t("key.mark"), readout=t("strip.section.no_mark"),
+                      hint=t("strip.section.mark_hint"))
+    accent = THEME["hot"]
+    return _strip("section", accent, t("key.section.title"),
+                  tag=length_label, readout=clock(elapsed),
+                  aside=t("key.section.buffer_limit") if capped else "",
+                  bar=fraction, hint=t("strip.section.save_hint"))
+
+
+def record_strip(active, elapsed=0.0, byte_count=0, paused=False,
+                 in_replay=False, unavailable=False, note=""):
+    """The Record dial: the clock and the file, and turn to pause."""
+    if unavailable:
+        return _strip("record", THEME["idle"], t("key.record.title"),
+                      tag=t("key.off"),
+                      hint=note or t("key.ui_not_running"), slashed=True)
+    if not active:
+        return _strip("record", THEME["idle"], t("key.record.title"),
+                      tag=t("key.off"), readout="--:--",
+                      aside=t("strip.in_replay") if in_replay else "",
+                      hint=note or t("key.press_to_start"))
+    accent = THEME["live"] if paused else THEME["hot"]
+    return _strip("pause" if paused else "record", accent,
+                  t("key.record.title"),
+                  tag=t("key.paused") if paused else t("key.rec"),
+                  readout=clock(elapsed),
+                  aside=size(byte_count) if byte_count else t("key.starting"),
+                  hint=t("strip.record.resume") if paused
+                  else t("strip.record.pause"))

@@ -23,7 +23,7 @@
       "UUID": "systems.garcia.gsr.replay",
       "Icon": "icons/replay",
       "Tooltip": "Whether the replay buffer is running, how long it is and how full. Press to start or stop it.",
-      "Controllers": ["Keypad"],
+      "Controllers": ["Keypad", "Encoder"],
       "SupportedInMultiActions": true,
       "PropertyInspectorPath": "pi/replay.html",
       "States": [
@@ -31,14 +31,23 @@
           "Image": "icons/replay",
           "Title": ""
         }
-      ]
+      ],
+      "Encoder": {
+        "layout": "layouts/strip.json",
+        "StackColor": "#3ecf8e",
+        "TriggerDescription": {
+          "Rotate": "Browse recent saves",
+          "Push": "Start or stop replay",
+          "Touch": "Show / open a save"
+        }
+      }
     },
     {
       "Name": "Save Replay",
       "UUID": "systems.garcia.gsr.save",
       "Icon": "icons/save",
       "Tooltip": "Save the replay buffer, whole or the last few minutes, and show the file it wrote.",
-      "Controllers": ["Keypad"],
+      "Controllers": ["Keypad", "Encoder"],
       "SupportedInMultiActions": true,
       "PropertyInspectorPath": "pi/save.html",
       "States": [
@@ -46,14 +55,47 @@
           "Image": "icons/save",
           "Title": ""
         }
-      ]
+      ],
+      "Encoder": {
+        "layout": "layouts/strip.json",
+        "StackColor": "#3ba7f0",
+        "TriggerDescription": {
+          "Rotate": "Choose how much to save",
+          "Push": "Save",
+          "Touch": "Save"
+        }
+      }
+    },
+    {
+      "Name": "Save Section",
+      "UUID": "systems.garcia.gsr.section",
+      "Icon": "icons/section",
+      "Tooltip": "Press to mark a start, press again to save the replay from the mark to now. On a dial, turn to move the mark.",
+      "Controllers": ["Keypad", "Encoder"],
+      "SupportedInMultiActions": false,
+      "PropertyInspectorPath": "pi/section.html",
+      "States": [
+        {
+          "Image": "icons/section",
+          "Title": ""
+        }
+      ],
+      "Encoder": {
+        "layout": "layouts/strip.json",
+        "StackColor": "#e5484d",
+        "TriggerDescription": {
+          "Rotate": "Move the mark",
+          "Push": "Mark, then save",
+          "Touch": "Cancel the mark"
+        }
+      }
     },
     {
       "Name": "Record",
       "UUID": "systems.garcia.gsr.record",
       "Icon": "icons/record",
       "Tooltip": "Start and stop a recording, including one running inside the replay buffer. Shows elapsed time and file size.",
-      "Controllers": ["Keypad"],
+      "Controllers": ["Keypad", "Encoder"],
       "SupportedInMultiActions": true,
       "PropertyInspectorPath": "pi/record.html",
       "States": [
@@ -61,7 +103,16 @@
           "Image": "icons/record",
           "Title": ""
         }
-      ]
+      ],
+      "Encoder": {
+        "layout": "layouts/strip.json",
+        "StackColor": "#e5484d",
+        "TriggerDescription": {
+          "Rotate": "Left pause, right resume",
+          "Push": "Start or stop recording",
+          "Touch": "Start or stop recording"
+        }
+      }
     },
     {
       "Name": "Stream",
